@@ -25,7 +25,7 @@ interface GeminiTrackSelection {
   position: number;
 }
 
-function formatCandidateForPrompt(track: TrackCandidate, index: number): string {
+function formatCandidateForPrompt(track: TrackCandidate): string {
   const duration = track.am_duration_ms
     ? `${Math.round(track.am_duration_ms / 60000)}:${String(Math.round((track.am_duration_ms % 60000) / 1000)).padStart(2, "0")}`
     : "~4:00";
@@ -36,7 +36,7 @@ function formatCandidateForPrompt(track: TrackCandidate, index: number): string 
   const relevance = ` | relevance:${track.artistRelevance.toFixed(2)}`;
   const genreCtx = ` | genre:${track.artistGenreContext}`;
 
-  return `${index}|${track.docId}|${track.Artist} - ${track.track_Title} (${track.album}) [${duration}${mood}${energy}${vibe}${score}${relevance}${genreCtx}]`;
+  return `${track.docId}|${track.Artist} - ${track.track_Title} (${track.album}) [${duration}${mood}${energy}${vibe}${score}${relevance}${genreCtx}]`;
 }
 
 function buildCuratorPrompt(
@@ -51,7 +51,7 @@ function buildCuratorPrompt(
 
   const trackList = candidates
     .slice(0, MAX_CANDIDATES_IN_PROMPT)
-    .map((t, i) => formatCandidateForPrompt(t, i))
+    .map((t) => formatCandidateForPrompt(t))
     .join("\n");
 
   return `You are a world-class music curator and playlist editor. Your job is to select and sequence
@@ -85,7 +85,8 @@ SEQUENCING RULES:
 - Avoid putting two tracks with the same vibe descriptor back-to-back
 - Keep artist variety — don't cluster all tracks from one artist
 
-CANDIDATE POOL (format: index|docId|Artist - Title (Album) [duration|mood|energy|vibe|score|relevance|genre]):
+CANDIDATE POOL (format: docId|Artist - Title (Album) [duration|mood|energy|vibe|score|relevance|genre]):
+NOTE: Use ONLY the exact docId value (the part before the first pipe) in your response.
 ${trackList}
 
 Select exactly ${targetTrackCount} tracks. For each selection, provide a brief rationale.
@@ -116,7 +117,7 @@ async function curatWithGemini(
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.3,
-        maxOutputTokens: 4000,
+        maxOutputTokens: 32768,
       },
     });
 
@@ -128,7 +129,7 @@ async function curatWithGemini(
     try {
       parsed = JSON.parse(text) as { playlist: GeminiTrackSelection[] };
     } catch (parseErr) {
-      console.warn("[curator] JSON.parse failed, trying extractJSON. text[:200]:", text.slice(0, 200));
+      console.warn("[curator] JSON.parse failed, trying extractJSON. text length:", text.length, "text[:500]:", text.slice(0, 500));
       parsed = extractJSON<{ playlist: GeminiTrackSelection[] }>(text);
     }
     if (!parsed?.playlist) {
