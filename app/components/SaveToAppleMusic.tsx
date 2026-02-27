@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from "react";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "../lib/firebase";
 import {
   initializeMusicKit,
   createAppleMusicPlaylist,
@@ -43,7 +44,7 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
 
     try {
       // 1. Get Apple Music developer token from Cloud Function
-      const functions = getFunctions();
+      const functions = getFunctions(app);
       const getDevToken = httpsCallable<void, { token: string }>(
         functions,
         "getAppleMusicDevToken"
