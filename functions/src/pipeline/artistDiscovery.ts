@@ -3,6 +3,7 @@
 //
 // Sources (in order):
 //   1. Perplexity Sonar (PRIMARY) — web-aware, great for music genre knowledge
+import { extractJSON } from "../services/perplexity.js";
 //   2. Serper (SUPPLEMENTAL) — web search for niche/specific requests
 //   3. Gemini 2.5 Flash Lite (FALLBACK) — if Perplexity is unavailable
 //
@@ -153,14 +154,12 @@ async function queryPerplexityForArtists(
     };
     const content = data.choices?.[0]?.message?.content ?? "";
 
-    // Extract JSON from response (may have surrounding text)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Extract JSON from response (handles markdown fences and citation suffixes)
+    const parsed = extractJSON<{ artists: DiscoveredArtist[] }>(content);
+    if (!parsed) {
       console.warn("[artistDiscovery] Perplexity: no JSON in response");
       return null;
     }
-
-    const parsed = JSON.parse(jsonMatch[0]) as { artists: DiscoveredArtist[] };
     return parsed.artists ?? null;
   } catch (err) {
     console.error("[artistDiscovery] Perplexity query failed:", err);
@@ -216,10 +215,8 @@ async function queryGeminiForArtists(
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    const parsed = JSON.parse(jsonMatch[0]) as { artists: DiscoveredArtist[] };
+    const parsed = extractJSON<{ artists: DiscoveredArtist[] }>(text);
+    if (!parsed) return null;
     return parsed.artists ?? null;
   } catch (err) {
     console.error("[artistDiscovery] Gemini query failed:", err);

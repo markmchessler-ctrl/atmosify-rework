@@ -127,9 +127,12 @@ async function curatWithGemini(
     let parsed: { playlist: GeminiTrackSelection[] } | null = null;
     try {
       parsed = JSON.parse(text) as { playlist: GeminiTrackSelection[] };
-    } catch {
-      // Fallback: try extracting JSON from markdown fences or bracket-depth scan
+    } catch (parseErr) {
+      console.warn("[curator] JSON.parse failed, trying extractJSON. text[:200]:", text.slice(0, 200));
       parsed = extractJSON<{ playlist: GeminiTrackSelection[] }>(text);
+    }
+    if (!parsed?.playlist) {
+      console.warn("[curator] No playlist in parsed response. Keys:", parsed ? Object.keys(parsed) : "null");
     }
     return parsed?.playlist ?? null;
   } catch (err) {
