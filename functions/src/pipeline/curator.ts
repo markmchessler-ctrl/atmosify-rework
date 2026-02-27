@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { TrackCandidate, PlaylistIntent, PlaylistDraft, PlaylistDraftTrack } from "../lib/types.js";
 import { getBpmRange } from "../lib/genreTaxonomy.js";
 
-const GEMINI_MODEL = "gemini-2.0-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 // Max candidates to send to Gemini in a single prompt (token budget)
 const MAX_CANDIDATES_IN_PROMPT = 200;
 // Default duration estimate for tracks without am_duration_ms (4 minutes)

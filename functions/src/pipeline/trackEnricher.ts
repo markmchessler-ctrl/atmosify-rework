@@ -10,7 +10,7 @@ import type { Firestore, Timestamp } from "firebase-admin/firestore";
 import type { TrackCandidate, PlaylistIntent } from "../lib/types.js";
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
-const GEMINI_MODEL = "gemini-2.0-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 const CACHE_TTL_DAYS = 30;
 const BATCH_SIZE = 12; // tracks per Perplexity/Gemini call
 

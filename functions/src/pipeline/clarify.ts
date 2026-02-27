@@ -9,7 +9,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildTaxonomyPromptContext } from "../lib/genreTaxonomy.js";
 import type { PlaylistIntent, ClarifyResult } from "../lib/types.js";
 
-const GEMINI_MODEL = "gemini-2.0-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 interface ClarifyConfig {
   geminiApiKey: string;

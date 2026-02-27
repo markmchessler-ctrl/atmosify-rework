@@ -69,31 +69,37 @@ export async function queryPerplexity(
 
 /**
  * Extract a JSON array or object from a Perplexity response string.
- * Handles cases where the model wraps JSON in markdown code blocks.
+ * Uses bracket-depth tracking to find the correct boundaries, avoiding
+ * the greedy-regex problem where citation footnotes break parsing.
  */
 export function extractJSON<T>(content: string): T | null {
-  // Try to extract JSON object
-  const objectMatch = content.match(/\{[\s\S]*\}/);
-  if (objectMatch) {
-    try {
-      return JSON.parse(objectMatch[0]) as T;
-    } catch { /* fall through */ }
-  }
-
-  // Try to extract JSON array
-  const arrayMatch = content.match(/\[[\s\S]*\]/);
-  if (arrayMatch) {
-    try {
-      return JSON.parse(arrayMatch[0]) as T;
-    } catch { /* fall through */ }
-  }
-
-  // Try to strip markdown code fences
+  // 1. Try markdown code fences first (most reliable)
   const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenceMatch) {
-    try {
-      return JSON.parse(fenceMatch[1]) as T;
-    } catch { /* fall through */ }
+    try { return JSON.parse(fenceMatch[1]) as T; } catch { /* fall through */ }
+  }
+
+  // 2. Find JSON using bracket-depth tracking (handles citations after JSON)
+  for (const [open, close] of [["{", "}"], ["[", "]"]] as const) {
+    const start = content.indexOf(open);
+    if (start === -1) continue;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < content.length; i++) {
+      const ch = content[i];
+      if (escape) { escape = false; continue; }
+      if (ch === "\\" && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === open) depth++;
+      else if (ch === close) {
+        depth--;
+        if (depth === 0) {
+          try { return JSON.parse(content.slice(start, i + 1)) as T; } catch { break; }
+        }
+      }
+    }
   }
 
   return null;

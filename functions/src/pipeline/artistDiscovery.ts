@@ -14,7 +14,7 @@ import type { PlaylistIntent, DiscoveredArtists, DiscoveredArtist } from "../lib
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 // Gemini model — update to "gemini-2.5-flash-lite" when generally available
-const GEMINI_MODEL = "gemini-2.0-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 interface ArtistDiscoveryConfig {
   perplexityApiKey: string;
