@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "./lib/firebase";
 import { PlaylistResults } from "./components/PlaylistResults";
-import type { AtmosPlaylist } from "../functions/src/lib/types";
+import type { AtmosPlaylist } from "../src/lib/types";
 
 // Pipeline takes ~90-150s; cycle through realistic stage messages
 const LOADING_STAGES = [

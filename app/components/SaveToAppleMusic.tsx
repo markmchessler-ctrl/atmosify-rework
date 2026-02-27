@@ -12,7 +12,7 @@ import {
   createAppleMusicPlaylist,
   isMusicKitAvailable,
 } from "../lib/musickit";
-import type { AtmosPlaylist } from "../../functions/src/lib/types";
+import type { AtmosPlaylist } from "../../src/lib/types";
 
 interface SaveToAppleMusicProps {
   playlist: AtmosPlaylist;

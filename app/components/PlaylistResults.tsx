@@ -4,7 +4,7 @@
 // REPLACES/UPDATES existing PlaylistResults component.
 
 import { SaveToAppleMusic } from "./SaveToAppleMusic";
-import type { AtmosPlaylist, VerifiedTrack } from "../../functions/src/lib/types";
+import type { AtmosPlaylist, VerifiedTrack } from "../../src/lib/types";
 
 interface PlaylistResultsProps {
   playlist: AtmosPlaylist;
