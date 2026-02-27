@@ -35,8 +35,11 @@ export function generateAppleMusicToken(
   keyId: string,
   privateKey: string
 ): string {
-  // Normalize escaped \n sequences that come from .env single-line storage
-  const pem = privateKey.replace(/\\n/g, "\n");
+  // Normalize escaped \n sequences that come from single-line secret storage.
+  // Handle both literal \n (two chars) and already-real newlines.
+  const pem = privateKey
+    .replace(/\\n/g, "\n")   // literal \n → real newline
+    .trim();                  // remove any leading/trailing whitespace
   return jwt.sign({}, pem, {
     algorithm: "ES256",
     expiresIn: "12h",

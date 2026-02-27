@@ -122,11 +122,16 @@ async function curatWithGemini(
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    const parsed = JSON.parse(jsonMatch[0]) as { playlist: GeminiTrackSelection[] };
-    return parsed.playlist ?? null;
+    // responseMimeType:"application/json" means text should be valid JSON directly
+    let parsed: { playlist: GeminiTrackSelection[] } | null = null;
+    try {
+      parsed = JSON.parse(text) as { playlist: GeminiTrackSelection[] };
+    } catch {
+      // Fallback: try extracting JSON from markdown fences or bracket-depth scan
+      const { extractJSON } = await import("../services/perplexity.js");
+      parsed = extractJSON<{ playlist: GeminiTrackSelection[] }>(text);
+    }
+    return parsed?.playlist ?? null;
   } catch (err) {
     console.error("[curator] Gemini curation failed:", err);
     return null;
