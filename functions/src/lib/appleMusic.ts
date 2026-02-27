@@ -77,7 +77,7 @@ export async function batchLookupAppleTracks(
 
     try {
       const resp = await fetch(
-        `https://api.music.apple.com/v1/catalog/${storefront}/songs?ids=${idsParam}`,
+        `https://api.music.apple.com/v1/catalog/${storefront}/songs?ids=${idsParam}&extend=audioVariants`,
         {
           headers: { Authorization: `Bearer ${token}` },
           signal: AbortSignal.timeout(15000),
