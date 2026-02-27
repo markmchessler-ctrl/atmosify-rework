@@ -7,6 +7,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { TrackCandidate, PlaylistIntent, PlaylistDraft, PlaylistDraftTrack } from "../lib/types.js";
 import { getBpmRange } from "../lib/genreTaxonomy.js";
+import { extractJSON } from "../services/perplexity.js";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 // Max candidates to send to Gemini in a single prompt (token budget)
@@ -128,7 +129,6 @@ async function curatWithGemini(
       parsed = JSON.parse(text) as { playlist: GeminiTrackSelection[] };
     } catch {
       // Fallback: try extracting JSON from markdown fences or bracket-depth scan
-      const { extractJSON } = await import("../services/perplexity.js");
       parsed = extractJSON<{ playlist: GeminiTrackSelection[] }>(text);
     }
     return parsed?.playlist ?? null;

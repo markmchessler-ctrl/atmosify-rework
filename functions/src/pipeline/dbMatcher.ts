@@ -124,8 +124,8 @@ function docToCandidate(
   return {
     docId,
     Artist: (data.Artist as string) ?? "",
-    track_Title: (data.track_Title as string) ?? "",
-    album: (data.album as string) ?? "",
+    track_Title: (data.Title as string) ?? (data.track_Title as string) ?? "",
+    album: (data.Album as string) ?? (data.album as string) ?? "",
     am_duration_ms: (data.am_duration_ms as number | null) ?? null,
     Apple_Music_ID: (data.Apple_Music_ID as string) ?? docId,
     Apple_Music_URL: (data.Apple_Music_URL as string | null) ?? null,
