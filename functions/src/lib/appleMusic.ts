@@ -11,7 +11,8 @@ export interface AppleTrackAttrs {
   genreNames: string[];
   releaseDate: string;
   isrc?: string;
-  audioTraits?: string[];
+  audioVariants?: string[];   // e.g. ["dolby-atmos", "lossless", "lossy-stereo"]
+  audioTraits?: string[];     // legacy field, no longer used for Atmos detection
   composerName?: string;
   durationInMillis: number;
   url: string;
@@ -96,7 +97,10 @@ export async function batchLookupAppleTracks(
       const foundIds = new Set<string>();
       for (const item of (data.data ?? [])) {
         const attrs = item.attributes;
-        const hasAtmos = (attrs.audioTraits ?? []).includes("atmos");
+        const hasAtmos = (attrs.audioVariants ?? []).includes("dolby-atmos");
+        if (hasAtmos) {
+          console.log(`[appleMusic] ✅ Atmos confirmed: ${attrs.artistName} – ${attrs.name} | variants: ${attrs.audioVariants?.join(",")}`);
+        }
         results.set(item.id, {
           id: item.id,
           found: true,
