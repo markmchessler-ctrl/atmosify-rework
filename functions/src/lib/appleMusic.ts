@@ -98,8 +98,6 @@ export async function batchLookupAppleTracks(
       for (const item of (data.data ?? [])) {
         const attrs = item.attributes;
         const hasAtmos = (attrs.audioVariants ?? []).includes("dolby-atmos");
-        // Diagnostic: log audioVariants for every track so we can see what Apple Music returns
-        console.log(`[appleMusic] Track ${item.id}: ${attrs.artistName} – ${attrs.name} | audioVariants=${JSON.stringify(attrs.audioVariants)} | audioTraits=${JSON.stringify(attrs.audioTraits)}`);
         results.set(item.id, {
           id: item.id,
           found: true,
