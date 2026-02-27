@@ -47,7 +47,9 @@ TASK:
    set needsClarification: true and provide a friendly clarificationQuestion.
 2. Otherwise, extract structured intent from the request.
 
-For genres and subGenres, use ONLY names from the canonical taxonomy provided.
+For genres and subGenres, map to canonical taxonomy names where possible, but common genres
+like R&B, Soul, Hip-Hop, Jazz, Classical, Country, Pop, Rock, Metal, Funk, Gospel, Latin,
+Reggae, Blues, Folk, Punk, etc. are always valid — do not ask for clarification on them.
 For moods, use descriptive words like: chill, energetic, melancholic, euphoric, romantic,
   introspective, uplifting, dark, aggressive, dreamy, sensual, nostalgic, hypnotic, etc.
 For vibeKeywords, use sonic descriptors: warm, cold, atmospheric, driving, lo-fi, hi-fi,
@@ -107,10 +109,8 @@ export async function clarifyIntent(
     const result = await model.generateContent(buildClarifyPrompt(userPrompt));
     const text = result.response.text();
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON in Gemini response");
-
-    const parsed = JSON.parse(jsonMatch[0]) as {
+    // responseMimeType:"application/json" means text should be valid JSON directly
+    const parsed = JSON.parse(text) as {
       needsClarification: boolean;
       clarificationQuestion: string | null;
       intent: PlaylistIntent | null;
