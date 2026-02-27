@@ -186,7 +186,8 @@ async function querySerperForArtists(
     });
 
     if (!resp.ok) {
-      console.warn(`[artistDiscovery] Serper error: HTTP ${resp.status}`);
+      const body = await resp.text().catch(() => "(unreadable)");
+      console.warn(`[artistDiscovery] Serper error: HTTP ${resp.status} | query: "${query}" | body: ${body.slice(0, 300)}`);
       return [];
     }
 
