@@ -45,8 +45,8 @@ function LoadingView({ startedAt }: { startedAt: number }) {
 
   return (
     <div className="flex flex-col items-center gap-6 py-20 text-center">
-      <div className="w-12 h-12">
-        <svg className="w-12 h-12 animate-spin" viewBox="0 0 24 24" fill="none">
+      <div className="w-3 h-3">
+        <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
           <circle className="opacity-10" cx="12" cy="12" r="10" stroke="white" strokeWidth="2.5" />
           <path className="opacity-90" fill="#0a84ff" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
@@ -123,7 +123,7 @@ export default function AtmosifyPage() {
       className="min-h-screen px-4 py-12 sm:py-20"
       style={{
         background:
-          "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(10,132,255,0.13) 0%, transparent 70%), #000",
+          "radial-gradient(ellipse 150% 50% at 50% 0%, rgba(65,105,225,0.75) 0%, #000000 60%)",
       }}
     >
       <div className="max-w-2xl mx-auto">
@@ -188,6 +188,7 @@ export default function AtmosifyPage() {
                   style={{
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.09)",
+                    color: "white",
                   }}
                   onFocus={e => (e.currentTarget.style.borderColor = "rgba(10,132,255,0.5)")}
                   onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)")}
