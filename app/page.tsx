@@ -42,22 +42,26 @@ function LoadingView({ startedAt }: { startedAt: number }) {
     (acc, stage) => (elapsed >= stage.delay ? stage.message : acc),
     LOADING_STAGES[0].message
   );
+  // Fills to ~95% over 120s so it never appears complete before the result arrives
+  const progressPct = Math.min(95, (elapsed / 120000) * 100);
 
   return (
-    <div className="flex flex-col items-center gap-6 py-20 text-center">
-      <div className="w-3 h-3">
-        <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-10" cx="12" cy="12" r="10" stroke="white" strokeWidth="2.5" />
-          <path className="opacity-90" fill="#0a84ff" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+    <div className="py-10 space-y-4">
+      {/* Progress bar */}
+      <div
+        className="w-full h-0.5 rounded-full overflow-hidden"
+        style={{ background: "rgba(255,255,255,0.08)" }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${progressPct}%`,
+            background: "linear-gradient(90deg, #4169e1, #0a84ff)",
+          }}
+        />
       </div>
-      <div>
-        <p className="text-white font-medium">{stageMsg}</p>
-        <p className="text-sm text-white/40 mt-1">{elapsedSec}s · usually 90–120s</p>
-      </div>
-      <p className="text-xs text-white/25 max-w-xs">
-        Searching 100,000+ Dolby Atmos tracks and curating a personalized playlist.
-      </p>
+      <p className="text-sm text-white/70">{stageMsg}</p>
+      <p className="text-xs text-white/30">{elapsedSec}s · usually 90–120s</p>
     </div>
   );
 }
