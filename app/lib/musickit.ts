@@ -121,7 +121,7 @@ export async function createAppleMusicPlaylist(
       body: JSON.stringify({
         attributes: {
           name: options.name,
-          description: { standard: options.description },
+          description: options.description,
         },
         relationships: {
           tracks: {

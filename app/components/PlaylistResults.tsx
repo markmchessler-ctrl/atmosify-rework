@@ -1,13 +1,30 @@
 "use client";
 // app/components/PlaylistResults.tsx
-// Displays a completed Atmosify playlist with track cards and Apple Music save button.
-// REPLACES/UPDATES existing PlaylistResults component.
+// Apple Music-style dark track list with album art placeholders.
 
 import { SaveToAppleMusic } from "./SaveToAppleMusic";
 import type { AtmosPlaylist, VerifiedTrack } from "../../src/lib/types";
 
 interface PlaylistResultsProps {
   playlist: AtmosPlaylist;
+}
+
+// Deterministic gradient per artist name
+const GRADIENTS: [string, string][] = [
+  ["#3b82f6", "#7c3aed"], // blue → purple
+  ["#ec4899", "#f43f5e"], // pink → rose
+  ["#f97316", "#eab308"], // orange → amber
+  ["#10b981", "#0d9488"], // emerald → teal
+  ["#8b5cf6", "#6366f1"], // violet → indigo
+  ["#06b6d4", "#3b82f6"], // cyan → blue
+  ["#d946ef", "#ec4899"], // fuchsia → pink
+  ["#f43f5e", "#fb923c"], // rose → orange
+];
+
+function getArtistGradient(artist: string): string {
+  const hash = artist.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const [from, to] = GRADIENTS[hash % GRADIENTS.length];
+  return `linear-gradient(135deg, ${from}, ${to})`;
 }
 
 function formatDuration(ms: number, estimated: boolean): string {
@@ -25,109 +42,107 @@ function formatTotalDuration(ms: number): string {
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 }
 
+function AlbumArt({ artist }: { artist: string }) {
+  return (
+    <div
+      className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center shadow-sm"
+      style={{ background: getArtistGradient(artist) }}
+    >
+      <span className="text-white font-semibold text-sm select-none">
+        {artist[0]?.toUpperCase() ?? "?"}
+      </span>
+    </div>
+  );
+}
+
 function AtmosBadge({ verified, warning }: { verified: boolean; warning: boolean }) {
   if (verified) {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-        <span>●</span> Atmos
+      <span
+        className="shrink-0 inline-flex items-center px-1.5 py-px rounded text-[10px] font-medium text-blue-400"
+        style={{
+          background: "rgba(10,132,255,0.15)",
+          border: "1px solid rgba(10,132,255,0.22)",
+        }}
+      >
+        Atmos
       </span>
     );
   }
   if (warning) {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-        <span>◐</span> Atmos?
+      <span
+        className="shrink-0 inline-flex items-center px-1.5 py-px rounded text-[10px] font-medium text-yellow-400/80"
+        style={{
+          background: "rgba(234,179,8,0.1)",
+          border: "1px solid rgba(234,179,8,0.18)",
+        }}
+      >
+        Atmos?
       </span>
     );
   }
   return null;
 }
 
-function TrackCard({ track, position }: { track: VerifiedTrack; position: number }) {
+function TrackCard({ track }: { track: VerifiedTrack }) {
   return (
-    <div className="flex items-start gap-3 py-3 px-4 hover:bg-gray-50 rounded-lg transition-colors group">
-      {/* Position */}
-      <span className="w-6 shrink-0 text-sm text-gray-400 text-right mt-0.5">{position}</span>
+    <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors">
+      <AlbumArt artist={track.Artist} />
 
-      {/* Track info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start gap-2 flex-wrap">
-          <span className="font-medium text-sm text-gray-900 truncate">{track.track_Title}</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm font-medium text-white truncate leading-tight">
+            {track.track_Title}
+          </span>
           <AtmosBadge verified={track.atmosVerified} warning={track.atmosWarning} />
-          {track.FINAL_SCORE != null && (
-            <span className="text-xs text-gray-400 ml-auto">★ {track.FINAL_SCORE}</span>
-          )}
         </div>
-        <div className="text-xs text-gray-500 truncate mt-0.5">
+        <div className="text-xs text-white/45 truncate mt-0.5">
           {track.Artist}
           {track.album && ` · ${track.album}`}
         </div>
-        {(track.atmos_mood || track.atmos_energy != null) && (
-          <div className="flex items-center gap-2 mt-1">
-            {track.atmos_mood && (
-              <span className="text-xs text-gray-400 italic">{track.atmos_mood}</span>
-            )}
-            {track.atmos_energy != null && (
-              <EnergyBar energy={track.atmos_energy} />
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Duration */}
-      <span className="text-xs text-gray-400 shrink-0 mt-0.5">
+      <span className="text-xs text-white/30 shrink-0 tabular-nums">
         {formatDuration(track.durationMs, track.durationEstimated)}
       </span>
     </div>
   );
 }
 
-function EnergyBar({ energy }: { energy: number }) {
-  const segments = 5;
-  const filled = Math.round((energy / 10) * segments);
-  return (
-    <div className="flex items-center gap-0.5" title={`Energy: ${energy}/10`}>
-      {Array.from({ length: segments }).map((_, i) => (
-        <div
-          key={i}
-          className={`w-1.5 h-2 rounded-sm ${i < filled ? "bg-blue-400" : "bg-gray-200"}`}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function PlaylistResults({ playlist }: PlaylistResultsProps) {
-  const atmosVerifiedPct = playlist.tracks.length > 0
-    ? Math.round((playlist.atmosVerifiedCount / playlist.tracks.length) * 100)
-    : 0;
+  const atmosVerifiedPct =
+    playlist.tracks.length > 0
+      ? Math.round((playlist.atmosVerifiedCount / playlist.tracks.length) * 100)
+      : 0;
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">{playlist.title}</h2>
-        <p className="text-sm text-gray-500 mt-1">{playlist.description}</p>
+      <div className="mb-5">
+        <h2 className="text-xl font-semibold text-white">{playlist.title}</h2>
+        <p className="text-sm text-white/45 mt-1">{playlist.description}</p>
 
-        {/* Stats bar */}
-        <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
+        {/* Stats */}
+        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-white/35">
           <span>{playlist.tracks.length} tracks</span>
+          <span className="text-white/15">·</span>
           <span>{formatTotalDuration(playlist.totalDurationMs)}</span>
-          <span>
-            {atmosVerifiedPct}% Atmos confirmed
-            {playlist.atmosWarningCount > 0 && ` · ${playlist.atmosWarningCount} unverified`}
-          </span>
-          <span className="text-gray-400">
-            from {playlist.buildMetadata.artistsDiscovered} artists
-          </span>
+          <span className="text-white/15">·</span>
+          <span>{atmosVerifiedPct}% Atmos confirmed</span>
+          {playlist.atmosWarningCount > 0 && (
+            <>
+              <span className="text-white/15">·</span>
+              <span>{playlist.atmosWarningCount} unverified</span>
+            </>
+          )}
         </div>
 
-        {/* Build stats (collapsible in production; shown here for transparency) */}
         <details className="mt-2">
-          <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+          <summary className="text-xs text-white/20 cursor-pointer hover:text-white/40 transition-colors">
             Build details
           </summary>
-          <div className="mt-1 text-xs text-gray-400 space-y-0.5 pl-3">
+          <div className="mt-1 text-xs text-white/20 space-y-0.5 pl-3">
             <div>Candidates found: {playlist.buildMetadata.candidatesFound}</div>
             <div>Enriched: {playlist.buildMetadata.enrichedTracks}</div>
             <div>Dropped at verification: {playlist.buildMetadata.verificationDropped}</div>
@@ -137,34 +152,33 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
       </div>
 
       {/* Save to Apple Music */}
-      <div className="mb-6">
+      <div className="mb-5">
         <SaveToAppleMusic playlist={playlist} />
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 mb-3 text-xs text-gray-400">
-        <span className="flex items-center gap-1">
-          <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">● Atmos</span>
-          = confirmed
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-yellow-100 text-yellow-700 text-xs">◐ Atmos?</span>
-          = likely Atmos
-        </span>
-        <span>~4:00 = estimated duration</span>
-      </div>
-
       {/* Track list */}
-      <div className="divide-y divide-gray-100">
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
         {playlist.tracks.map((track, i) => (
-          <TrackCard key={track.docId} track={track} position={i + 1} />
+          <div key={track.docId}>
+            {i > 0 && (
+              <div className="mx-3" style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
+            )}
+            <div className="px-2">
+              <TrackCard track={track} />
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Footer note */}
       {playlist.atmosWarningCount > 0 && (
-        <p className="mt-4 text-xs text-gray-400 text-center">
-          Tracks marked with ◐ come from Atmos-verified artist catalogs but could not be confirmed via Apple Music API at build time.
+        <p className="mt-4 text-xs text-white/20 text-center">
+          Tracks marked Atmos? come from verified artist catalogs but could not be confirmed via Apple Music API at build time.
         </p>
       )}
     </div>
