@@ -74,8 +74,10 @@ const EXAMPLE_PROMPTS = [
 
 export default function AtmosifyPage() {
   const [prompt, setPrompt] = useState("");
+  const [tweakInput, setTweakInput] = useState("");
   const [appState, setAppState] = useState<AppState>({ kind: "idle" });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const tweakRef = useRef<HTMLInputElement>(null);
 
   const runPipeline = useCallback(async (userPrompt: string) => {
     if (!userPrompt.trim()) return;
@@ -116,9 +118,19 @@ export default function AtmosifyPage() {
     runPipeline(prompt);
   };
 
+  const handleTweak = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tweakInput.trim()) return;
+    // Append the tweak to the original prompt and re-run
+    const refined = `${prompt}. Refine: ${tweakInput.trim()}`;
+    setTweakInput("");
+    runPipeline(refined);
+  };
+
   const handleReset = () => {
     setAppState({ kind: "idle" });
     setPrompt("");
+    setTweakInput("");
     setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
@@ -236,12 +248,42 @@ export default function AtmosifyPage() {
         {appState.kind === "result" && (
           <div>
             <PlaylistResults playlist={appState.playlist} />
-            <div className="mt-8 text-center">
+
+            {/* Tweak form */}
+            <form
+              onSubmit={handleTweak}
+              className="mt-6 flex gap-2"
+            >
+              <input
+                ref={tweakRef}
+                value={tweakInput}
+                onChange={e => setTweakInput(e.target.value)}
+                placeholder="Refine this playlist… e.g. more upbeat, add some jazz"
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm placeholder-white/25 focus:outline-none transition"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  color: "white",
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = "rgba(10,132,255,0.5)")}
+                onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)")}
+              />
+              <button
+                type="submit"
+                disabled={!tweakInput.trim()}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-25 disabled:cursor-not-allowed hover:opacity-85 transition active:scale-95 shrink-0"
+                style={{ background: "#0a84ff" }}
+              >
+                Refine →
+              </button>
+            </form>
+
+            <div className="mt-5 text-center">
               <button
                 onClick={handleReset}
                 className="text-sm text-white/30 hover:text-white/60 transition"
               >
-                ← Build another playlist
+                ← Start over
               </button>
             </div>
           </div>
