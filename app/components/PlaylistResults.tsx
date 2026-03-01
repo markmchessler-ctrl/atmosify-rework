@@ -1,7 +1,6 @@
 "use client";
 // app/components/PlaylistResults.tsx
-// Apple Music-style dark track list.
-// Fetches real album art from the AM catalog API on mount; falls back to gradient placeholder.
+// M3 dark-themed track list with Apple Music album art.
 
 import { useEffect, useState } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
@@ -22,7 +21,6 @@ async function fetchArtworkMap(
   const ids = trackIds.filter(Boolean);
   if (ids.length === 0) return map;
 
-  // Get a dev token (same Cloud Run function used by SaveToAppleMusic)
   const functions = getFunctions(app);
   const getDevToken = httpsCallableFromURL<void, { token: string }>(
     functions,
@@ -31,7 +29,6 @@ async function fetchArtworkMap(
   const { data } = await getDevToken();
   const devToken = data.token;
 
-  // Apple Music catalog API — up to 300 IDs per request
   const CHUNK = 300;
   for (let i = 0; i < ids.length; i += CHUNK) {
     const chunk = ids.slice(i, i + CHUNK).join(",");
@@ -45,13 +42,11 @@ async function fetchArtworkMap(
       for (const song of json.data ?? []) {
         const url: string | undefined = song.attributes?.artwork?.url;
         if (url) {
-          // Replace the template placeholders with pixel dimensions.
-          // 80px covers 40px display size at 2× retina.
-          map.set(song.id, url.replace("{w}", "80").replace("{h}", "80"));
+          map.set(song.id, url.replace("{w}", "88").replace("{h}", "88"));
         }
       }
     } catch {
-      // Network error — silently fall back to gradients for this chunk
+      // Silently fall back to gradients
     }
   }
 
@@ -102,15 +97,19 @@ function AlbumArt({
 }) {
   return (
     <div
-      className="w-10 h-10 rounded-lg shrink-0 relative overflow-hidden shadow-sm flex items-center justify-center"
-      style={{ background: getArtistGradient(artist) }}
+      className="w-11 h-11 shrink-0 relative overflow-hidden flex items-center justify-center"
+      style={{
+        background: getArtistGradient(artist),
+        borderRadius: "var(--md-sys-shape-corner-medium)",
+      }}
     >
-      {/* Gradient initial — always rendered, hidden by real art if it loads */}
-      <span className="text-white font-semibold text-sm select-none">
+      <span
+        className="font-semibold text-sm select-none"
+        style={{ color: "white" }}
+      >
         {artist[0]?.toUpperCase() ?? "?"}
       </span>
 
-      {/* Real artwork — overlays the gradient; hides itself on error */}
       {artworkUrl && (
         <img
           src={artworkUrl}
@@ -135,10 +134,12 @@ function AtmosBadge({
   if (verified) {
     return (
       <span
-        className="shrink-0 inline-flex items-center px-1.5 py-px rounded text-[10px] font-medium text-blue-400"
+        className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full font-medium"
         style={{
-          background: "rgba(10,132,255,0.15)",
-          border: "1px solid rgba(10,132,255,0.22)",
+          fontSize: "11px",
+          letterSpacing: "0.5px",
+          background: "var(--atmos-verified-bg)",
+          color: "var(--md-sys-color-primary)",
         }}
       >
         Atmos
@@ -148,10 +149,12 @@ function AtmosBadge({
   if (warning) {
     return (
       <span
-        className="shrink-0 inline-flex items-center px-1.5 py-px rounded text-[10px] font-medium text-yellow-400/80"
+        className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full font-medium"
         style={{
-          background: "rgba(234,179,8,0.1)",
-          border: "1px solid rgba(234,179,8,0.18)",
+          fontSize: "11px",
+          letterSpacing: "0.5px",
+          background: "var(--atmos-warning-bg)",
+          color: "var(--md-sys-color-tertiary)",
         }}
       >
         Atmos?
@@ -169,28 +172,56 @@ function TrackCard({
   artworkUrl?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors">
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-white/[0.04]"
+      style={{ minHeight: "56px" }}
+    >
       <AlbumArt artist={track.Artist} artworkUrl={artworkUrl} />
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-sm font-medium text-white truncate leading-tight">
+        <div className="flex items-center gap-2">
+          <span
+            className="truncate"
+            style={{
+              fontSize: "14px",
+              lineHeight: "20px",
+              fontWeight: 500,
+              color: "var(--md-sys-color-on-surface)",
+              letterSpacing: "0.1px",
+            }}
+          >
             {track.track_Title}
           </span>
-          <AtmosBadge
-            verified={track.atmosVerified}
-            warning={track.atmosWarning}
-          />
         </div>
-        <div className="text-xs text-white/45 truncate mt-0.5">
-          {track.Artist}
-          {track.album && ` · ${track.album}`}
+        <div className="truncate mt-0.5">
+          <span
+            style={{
+              fontSize: "12px",
+              lineHeight: "16px",
+              color: "var(--md-sys-color-on-surface-variant)",
+              letterSpacing: "0.4px",
+            }}
+          >
+            {track.Artist}
+            {track.album && ` · ${track.album}`}
+          </span>
         </div>
       </div>
 
-      <span className="text-xs text-white/30 shrink-0 tabular-nums">
-        {formatDuration(track.durationMs, track.durationEstimated)}
-      </span>
+      <div className="flex items-center gap-2 shrink-0">
+        <AtmosBadge verified={track.atmosVerified} warning={track.atmosWarning} />
+        <span
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            letterSpacing: "0.5px",
+            color: "var(--md-sys-color-outline)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatDuration(track.durationMs, track.durationEstimated)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -216,40 +247,97 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="mb-5">
-        <h2 className="text-xl font-semibold text-white">{playlist.title}</h2>
-        <p className="text-sm text-white/45 mt-1">{playlist.description}</p>
+      {/* Playlist header */}
+      <div className="mb-6">
+        <h2
+          style={{
+            fontSize: "22px",
+            lineHeight: "28px",
+            fontWeight: 500,
+            color: "var(--md-sys-color-on-surface)",
+          }}
+        >
+          {playlist.title}
+        </h2>
+        <p
+          className="mt-2"
+          style={{
+            fontSize: "14px",
+            lineHeight: "20px",
+            letterSpacing: "0.25px",
+            color: "var(--md-sys-color-on-surface-variant)",
+          }}
+        >
+          {playlist.description}
+        </p>
 
-        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-white/35">
+        {/* Stats row */}
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3"
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            letterSpacing: "0.5px",
+            color: "var(--md-sys-color-outline)",
+          }}
+        >
           <span>{playlist.tracks.length} tracks</span>
-          <span className="text-white/15">·</span>
+          <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
           <span>{formatTotalDuration(playlist.totalDurationMs)}</span>
-          <span className="text-white/15">·</span>
+          <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
           <span>{atmosVerifiedPct}% Atmos confirmed</span>
           {playlist.atmosWarningCount > 0 && (
             <>
-              <span className="text-white/15">·</span>
+              <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
               <span>{playlist.atmosWarningCount} unverified</span>
             </>
           )}
         </div>
 
-        <details className="mt-2">
-          <summary className="text-xs text-white/20 cursor-pointer hover:text-white/40 transition-colors">
+        {/* Build details */}
+        <details
+          className="mt-3 rounded-2xl overflow-hidden"
+          style={{ background: "var(--md-sys-color-surface-container-low)" }}
+        >
+          <summary
+            className="px-4 py-3 cursor-pointer flex items-center gap-2 select-none"
+            style={{
+              fontSize: "12px",
+              fontWeight: 500,
+              letterSpacing: "0.5px",
+              color: "var(--md-sys-color-on-surface-variant)",
+            }}
+          >
+            <svg
+              className="w-4 h-4 transition-transform chevron-icon"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
             Build details
           </summary>
-          <div className="mt-1 text-xs text-white/20 space-y-0.5 pl-3">
-            <div>Candidates found: {playlist.buildMetadata.candidatesFound}</div>
-            <div>Enriched: {playlist.buildMetadata.enrichedTracks}</div>
-            <div>
-              Dropped at verification:{" "}
-              {playlist.buildMetadata.verificationDropped}
-            </div>
-            <div>
-              Build time:{" "}
+          <div
+            className="px-4 pb-3 grid grid-cols-2 gap-x-6 gap-y-1"
+            style={{
+              fontSize: "12px",
+              color: "var(--md-sys-color-outline)",
+            }}
+          >
+            <span>Candidates found</span>
+            <span className="text-right">{playlist.buildMetadata.candidatesFound}</span>
+            <span>Enriched</span>
+            <span className="text-right">{playlist.buildMetadata.enrichedTracks}</span>
+            <span>Dropped at verification</span>
+            <span className="text-right">{playlist.buildMetadata.verificationDropped}</span>
+            <span>Build time</span>
+            <span className="text-right">
               {(playlist.buildMetadata.buildDurationMs / 1000).toFixed(1)}s
-            </div>
+            </span>
           </div>
         </details>
       </div>
@@ -261,35 +349,40 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
 
       {/* Track list */}
       <div
-        className="rounded-2xl overflow-hidden"
+        className="rounded-3xl overflow-hidden"
         style={{
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: "var(--md-sys-color-surface-container-lowest)",
+          border: "1px solid var(--md-sys-color-outline-variant)",
         }}
       >
         {playlist.tracks.map((track, i) => (
           <div key={track.docId}>
             {i > 0 && (
               <div
-                className="mx-3"
+                className="mx-4"
                 style={{
                   height: "1px",
-                  background: "rgba(255,255,255,0.05)",
+                  background: "var(--md-sys-color-outline-variant)",
                 }}
               />
             )}
-            <div className="px-2">
-              <TrackCard
-                track={track}
-                artworkUrl={artworkMap.get(track.Apple_Music_ID)}
-              />
-            </div>
+            <TrackCard
+              track={track}
+              artworkUrl={artworkMap.get(track.Apple_Music_ID)}
+            />
           </div>
         ))}
       </div>
 
       {playlist.atmosWarningCount > 0 && (
-        <p className="mt-4 text-xs text-white/20 text-center">
+        <p
+          className="mt-4 text-center"
+          style={{
+            fontSize: "12px",
+            letterSpacing: "0.4px",
+            color: "var(--md-sys-color-outline)",
+          }}
+        >
           Tracks marked Atmos? come from verified artist catalogs but could not
           be confirmed via Apple Music API at build time.
         </p>

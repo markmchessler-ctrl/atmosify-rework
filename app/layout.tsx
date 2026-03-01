@@ -1,26 +1,29 @@
 // app/layout.tsx
-// MODIFICATION INSTRUCTIONS:
-// Add the MusicKit JS CDN script to your existing layout.tsx.
-// Find the closing </head> tag (or the Script imports) and add:
-//
-//   import Script from "next/script";
-//
-//   Then in your <html> body, before </body>, add:
-//
-//   <Script
-//     src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"
-//     strategy="beforeInteractive"
-//   />
-//
-// Full example layout.tsx (adapt to your existing code):
+// Root layout — Inter font via next/font, MusicKit JS CDN, M3 theme color.
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import Script from "next/script";
-import "./globals.css"; // keep your existing CSS import
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Atmosify — Dolby Atmos Playlist Maker",
-  description: "Build premium Dolby Atmos playlists curated from 100k+ verified tracks",
+  description:
+    "Build premium Dolby Atmos playlists curated from 100k+ verified tracks",
+  themeColor: "#111318",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -29,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body>
         {children}
         {/* MusicKit JS — loaded before interactive so it's available on first render */}

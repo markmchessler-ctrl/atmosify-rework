@@ -1,6 +1,6 @@
 "use client";
 // app/components/SaveToAppleMusic.tsx
-// Save an Atmosify playlist to Apple Music — dark themed.
+// Save an Atmosify playlist to Apple Music — M3 dark themed.
 
 import { useState, useCallback } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
@@ -88,11 +88,16 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
     setErrorMessage(null);
   }, []);
 
+  /* ── Success state ───────────────────────────────────────────────────────── */
+
   if (saveState === "success") {
     return (
-      <div className={`flex flex-col items-center gap-2 ${className ?? ""}`}>
-        <div className="flex items-center gap-2 text-sm font-medium text-green-400">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
+        <div
+          className="flex items-center gap-2 text-sm font-medium"
+          style={{ color: "var(--atmos-success)" }}
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -101,26 +106,37 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
           </svg>
           Saved to Apple Music
         </div>
-        <p className="text-xs text-white/35">
+        <p
+          style={{
+            fontSize: "12px",
+            letterSpacing: "0.4px",
+            color: "var(--md-sys-color-on-surface-variant)",
+          }}
+        >
           {playlist.tracks.length} tracks · Open the Music app to listen
         </p>
         {savedPlaylistId && (
           <a
             href={`music://music.apple.com/library/playlists/${savedPlaylistId}`}
-            className="text-xs text-blue-400 hover:text-blue-300 transition"
+            className="btn-outlined !text-sm !min-h-[36px]"
           >
-            Open in Music app →
+            Open in Music app
           </a>
         )}
       </div>
     );
   }
 
+  /* ── Error state ─────────────────────────────────────────────────────────── */
+
   if (saveState === "error") {
     return (
-      <div className={`flex flex-col items-center gap-2 ${className ?? ""}`}>
-        <div className="flex items-center gap-2 text-sm font-medium text-red-400">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
+        <div
+          className="flex items-center gap-2 text-sm font-medium"
+          style={{ color: "var(--md-sys-color-error)" }}
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -130,19 +146,36 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
           Save failed
         </div>
         {errorMessage && (
-          <p className="text-xs text-white/40 text-center max-w-xs">{errorMessage}</p>
+          <p
+            className="text-center max-w-xs"
+            style={{
+              fontSize: "12px",
+              letterSpacing: "0.4px",
+              color: "var(--md-sys-color-on-surface-variant)",
+            }}
+          >
+            {errorMessage}
+          </p>
         )}
         {errorMessage?.includes("subscription") && (
-          <p className="text-xs text-white/25 text-center max-w-xs">
+          <p
+            className="text-center max-w-xs"
+            style={{
+              fontSize: "12px",
+              color: "var(--md-sys-color-outline)",
+            }}
+          >
             An Apple Music subscription is required to save playlists.
           </p>
         )}
-        <button onClick={handleRetry} className="text-xs text-blue-400 hover:text-blue-300 transition">
+        <button onClick={handleRetry} className="btn-text !text-sm">
           Try again
         </button>
       </div>
     );
   }
+
+  /* ── Idle / Loading states ───────────────────────────────────────────────── */
 
   const isLoading = saveState !== "idle";
 
@@ -160,17 +193,37 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
       onClick={handleSave}
       disabled={isLoading}
       className={`
-        flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm
-        transition-all duration-200 text-white
-        ${isLoading ? "opacity-50 cursor-not-allowed" : "hover:opacity-85 active:scale-95"}
+        flex items-center gap-2.5 rounded-full font-medium text-sm
+        transition-all active:scale-[0.98]
         ${className ?? ""}
       `}
-      style={{ background: isLoading ? "rgba(255,255,255,0.1)" : "#0a84ff" }}
+      style={{
+        background: isLoading
+          ? "var(--md-sys-color-surface-container-high)"
+          : "var(--md-sys-color-primary)",
+        color: isLoading
+          ? "var(--md-sys-color-on-surface-variant)"
+          : "var(--md-sys-color-on-primary)",
+        padding: "12px 24px",
+        minHeight: "44px",
+        letterSpacing: "0.1px",
+        opacity: isLoading ? 0.7 : 1,
+        cursor: isLoading ? "not-allowed" : "pointer",
+        border: "none",
+      }}
     >
       {isLoading ? (
-        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        <svg className="w-[18px] h-[18px] animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle
+            cx="12" cy="12" r="10"
+            stroke="currentColor" strokeWidth="3"
+            style={{ opacity: 0.2 }}
+          />
+          <path
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            fill="currentColor"
+            style={{ opacity: 0.8 }}
+          />
         </svg>
       ) : (
         <AppleMusicIcon />
@@ -182,7 +235,7 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
 
 function AppleMusicIcon() {
   return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.5 7.5l-7 2v7c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.35 0 .68.09.97.25V8.18l7-2V7.5z" />
     </svg>
   );
