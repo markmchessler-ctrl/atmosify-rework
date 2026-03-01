@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   title: "Atmosify — Dolby Atmos Playlist Maker",
   description:
     "Build premium Dolby Atmos playlists curated from 100k+ verified tracks",
-  themeColor: "#0a0a1a",
 };
 
 export const viewport: Viewport = {
@@ -24,6 +23,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
+  themeColor: "#0a0a1a",
 };
 
 export default function RootLayout({
