@@ -1,6 +1,6 @@
 "use client";
 // app/page.tsx
-// Atmosify — vibrant music club theme with big inviting textarea.
+// Atmosify — vibrant music club theme, fully fixed layout.
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
@@ -67,7 +67,6 @@ function LoadingView({ startedAt }: { startedAt: number }) {
 
   return (
     <div className="py-6 space-y-5">
-      {/* Stage indicator */}
       <div className="flex items-center gap-3">
         <div
           className="w-5 h-5 rounded-full border-2 animate-spin shrink-0"
@@ -81,17 +80,14 @@ function LoadingView({ startedAt }: { startedAt: number }) {
         </p>
       </div>
 
-      {/* Skeleton playlist header */}
       <div className="space-y-2.5">
         <div className="skeleton h-7 w-3/5 rounded-lg" />
         <div className="skeleton h-4 w-4/5 rounded-md" />
         <div className="skeleton h-3 w-2/5 rounded-md" />
       </div>
 
-      {/* Skeleton Save button */}
       <div className="skeleton h-12 w-52 rounded-full" />
 
-      {/* Skeleton track list */}
       <div className="glass-card-raised overflow-hidden !rounded-2xl">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i}>
@@ -103,7 +99,6 @@ function LoadingView({ startedAt }: { startedAt: number }) {
         ))}
       </div>
 
-      {/* Elapsed */}
       <p className="text-center" style={{ fontSize: "11px", color: "var(--color-text-tertiary)", letterSpacing: "0.5px" }}>
         {elapsedSec}s · usually 90–120s
       </p>
@@ -114,9 +109,9 @@ function LoadingView({ startedAt }: { startedAt: number }) {
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 
 const EXAMPLE_PROMPTS = [
-  "chill late night R&B, warm and introspective, 20 minutes",
-  "high energy workout, hip-hop and trap, 30 minutes",
-  "ambient electronic, focus and flow, 45 minutes",
+  "chill late night R&B, warm and introspective",
+  "high energy workout, hip-hop and trap",
+  "ambient electronic for deep focus",
 ];
 
 function timeAgo(ts: number): string {
@@ -134,6 +129,57 @@ function fmtDuration(ms: number): string {
   const h = Math.floor(totalMins / 60);
   const m = totalMins % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/* ─── Background Orbs ──────────────────────────────────────────────────────── */
+
+function BackgroundOrbs() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
+      {/* Purple — top left */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-160px",
+          left: "-160px",
+          width: "700px",
+          height: "700px",
+          borderRadius: "9999px",
+          background: "radial-gradient(circle, rgba(168,85,247,0.7) 0%, transparent 65%)",
+          filter: "blur(80px)",
+          opacity: 0.55,
+        }}
+      />
+      {/* Pink — top right */}
+      <div
+        style={{
+          position: "absolute",
+          top: "5%",
+          right: "-200px",
+          width: "750px",
+          height: "750px",
+          borderRadius: "9999px",
+          background: "radial-gradient(circle, rgba(236,72,153,0.65) 0%, transparent 65%)",
+          filter: "blur(80px)",
+          opacity: 0.45,
+        }}
+      />
+      {/* Blue — bottom center */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-180px",
+          left: "30%",
+          width: "700px",
+          height: "700px",
+          borderRadius: "9999px",
+          background: "radial-gradient(circle, rgba(59,130,246,0.6) 0%, transparent 65%)",
+          filter: "blur(80px)",
+          opacity: 0.4,
+        }}
+      />
+    </div>
+  );
 }
 
 /* ─── Main Page ────────────────────────────────────────────────────────────── */
@@ -213,289 +259,414 @@ export default function AtmosifyPage() {
   const showRightPane =
     appState.kind === "loading" || appState.kind === "result";
 
-  return (
-    <main className="min-h-screen bg-club">
-      {/* Colorful orbs — ambient background light */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full opacity-30 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)" }}
-        />
-        <div
-          className="absolute top-1/4 -right-40 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.5) 0%, transparent 70%)" }}
-        />
-        <div
-          className="absolute -bottom-40 left-1/3 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)" }}
-        />
-      </div>
+  /* ── Shared: Prompt Form ─────────────────────────────────────────────────── */
 
-      <div
-        className={`
-          relative z-10 mx-auto max-w-[1200px] px-4 py-10 sm:py-16
-          ${showRightPane ? "lg:grid lg:grid-cols-[minmax(360px,440px)_1fr] lg:gap-10 lg:items-start" : ""}
-        `}
+  const promptForm = showPromptArea ? (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        backdropFilter: "blur(40px)",
+        WebkitBackdropFilter: "blur(40px)",
+        border: "1px solid rgba(255,255,255,0.10)",
+        borderRadius: "24px",
+        padding: "24px",
+        marginBottom: "20px",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <form
+        onSubmit={appState.kind === "clarify" ? handleClarifySubmit : handleSubmit}
+        style={{ width: "100%", display: "flex", flexDirection: "column", gap: "0" }}
       >
-        {/* ─── Left Pane: Prompt Area ──────────────────────────────────────── */}
-        <div className={showRightPane ? "lg:sticky lg:top-12" : "max-w-2xl mx-auto"}>
-
-          {/* Header */}
-          <div className={`mb-8 ${showRightPane ? "lg:text-left" : "text-center"}`}>
-            <h1
-              className="font-extrabold tracking-tight"
-              style={{
-                fontSize: "2.5rem",
-                lineHeight: "1.1",
-                background: "linear-gradient(135deg, #c084fc, #ec4899, #f59e0b)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Atmosify
-            </h1>
-            <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--color-text-secondary)" }}>
-              Dolby Atmos playlists built from 100,000+ verified tracks
-            </p>
-          </div>
-
-          {/* Prompt form */}
-          {showPromptArea && (
-            <div className="glass-card p-5 sm:p-6 mb-6">
-              <form onSubmit={appState.kind === "clarify" ? handleClarifySubmit : handleSubmit}>
-
-                {/* Clarification banner */}
-                {appState.kind === "clarify" && (
-                  <div
-                    className="mb-4 p-4 rounded-2xl flex items-start gap-3"
-                    style={{
-                      background: "rgba(168, 85, 247, 0.1)",
-                      border: "1px solid rgba(168, 85, 247, 0.2)",
-                    }}
-                  >
-                    <span className="text-lg mt-0.5">💬</span>
-                    <div>
-                      <span className="font-semibold text-sm" style={{ color: "var(--color-accent-bright)" }}>
-                        Quick question
-                      </span>
-                      <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-                        {appState.question}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error banner */}
-                {appState.kind === "error" && (
-                  <div
-                    className="mb-4 p-4 rounded-2xl flex items-start gap-3"
-                    style={{
-                      background: "var(--color-error-bg)",
-                      border: "1px solid rgba(248, 113, 113, 0.2)",
-                    }}
-                  >
-                    <span className="text-lg mt-0.5">⚠️</span>
-                    <p className="text-sm" style={{ color: "var(--color-error)" }}>
-                      {appState.message}
-                    </p>
-                  </div>
-                )}
-
-                {/* Big textarea */}
-                <div className="relative">
-                  <textarea
-                    ref={textareaRef}
-                    value={prompt}
-                    onChange={e => setPrompt(e.target.value)}
-                    placeholder="What do you want to hear? Describe a mood, a moment, an energy…"
-                    rows={5}
-                    autoFocus
-                    className="w-full resize-none rounded-2xl px-5 py-4 text-base leading-relaxed focus:outline-none"
-                    style={{
-                      background: "var(--color-surface-input)",
-                      border: "2px solid var(--color-border)",
-                      color: "var(--color-text)",
-                      minHeight: "140px",
-                      transition: `border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out)`,
-                    }}
-                    onFocus={e => {
-                      e.currentTarget.style.borderColor = "var(--color-accent)";
-                      e.currentTarget.style.boxShadow = "0 0 0 4px var(--color-accent-glow)";
-                    }}
-                    onBlur={e => {
-                      e.currentTarget.style.borderColor = "var(--color-border)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        if (prompt.trim()) runPipeline(prompt);
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Build button — full width below textarea */}
-                <button
-                  type="submit"
-                  disabled={!prompt.trim()}
-                  className="btn-primary w-full mt-4 text-base"
-                >
-                  ✨ Build My Playlist
-                </button>
-
-                {/* Example chips */}
-                {appState.kind === "idle" && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="text-xs mr-1 self-center" style={{ color: "var(--color-text-tertiary)" }}>
-                      Try:
-                    </span>
-                    {EXAMPLE_PROMPTS.map(ex => (
-                      <button
-                        key={ex}
-                        type="button"
-                        onClick={() => {
-                          setPrompt(ex);
-                          textareaRef.current?.focus();
-                        }}
-                        className="rounded-full px-3 py-1.5 text-xs transition-all"
-                        style={{
-                          background: "rgba(168, 85, 247, 0.08)",
-                          border: "1px solid rgba(168, 85, 247, 0.2)",
-                          color: "var(--color-accent-bright)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {ex}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </form>
-            </div>
-          )}
-
-          {/* Recent playlists */}
-          {appState.kind === "idle" && recents.length > 0 && (
-            <div className="mt-6">
-              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--color-text-tertiary)" }}>
-                Recent playlists
+        {/* Clarification banner */}
+        {appState.kind === "clarify" && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "16px",
+              borderRadius: "16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              background: "rgba(168, 85, 247, 0.1)",
+              border: "1px solid rgba(168, 85, 247, 0.2)",
+            }}
+          >
+            <span style={{ fontSize: "18px", marginTop: "2px" }}>💬</span>
+            <div>
+              <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--color-accent-bright)", display: "block" }}>
+                Quick question
+              </span>
+              <p style={{ fontSize: "14px", marginTop: "4px", color: "var(--color-text-secondary)" }}>
+                {appState.question}
               </p>
-              <div className="space-y-2">
-                {recents.map((item, i) => {
-                  const pct =
-                    item.playlist.tracks.length > 0
-                      ? Math.round(
-                          (item.playlist.atmosVerifiedCount /
-                            item.playlist.tracks.length) *
-                            100
-                        )
-                      : 0;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setPrompt(item.prompt);
-                        setAppState({ kind: "result", playlist: item.playlist });
-                      }}
-                      className="w-full text-left rounded-2xl px-4 py-3.5 transition-all hover:scale-[1.01]"
-                      style={{
-                        background: "var(--color-surface)",
-                        border: "1px solid var(--color-border)",
-                        transition: `all var(--duration-normal) var(--ease-out)`,
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-sm font-semibold truncate leading-snug" style={{ color: "var(--color-text)" }}>
-                          {item.playlist.title}
-                        </span>
-                        <span className="shrink-0 mt-px" style={{ fontSize: "11px", color: "var(--color-text-tertiary)" }}>
-                          {timeAgo(item.savedAt)}
-                        </span>
-                      </div>
-                      <div className="text-xs truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                        {item.prompt}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2" style={{ fontSize: "11px", fontWeight: 500, color: "var(--color-text-tertiary)" }}>
-                        <span>{item.playlist.tracks.length} tracks</span>
-                        <span>·</span>
-                        <span>{fmtDuration(item.playlist.totalDurationMs)}</span>
-                        <span>·</span>
-                        <span style={{ color: "var(--color-accent-bright)" }}>{pct}% Atmos</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
-          )}
-
-          {/* Loading on mobile */}
-          {appState.kind === "loading" && (
-            <div className="lg:hidden">
-              <LoadingView startedAt={appState.startedAt} />
-            </div>
-          )}
-        </div>
-
-        {/* ─── Right Pane: Loading / Results ────────────────────────────────── */}
-        {showRightPane && (
-          <div>
-            {appState.kind === "loading" && (
-              <div className="hidden lg:block">
-                <LoadingView startedAt={appState.startedAt} />
-              </div>
-            )}
-
-            {appState.kind === "result" && (
-              <div>
-                <PlaylistResults playlist={appState.playlist} />
-
-                {/* Tweak form */}
-                <form onSubmit={handleTweak} className="mt-6 flex gap-2">
-                  <input
-                    ref={tweakRef}
-                    value={tweakInput}
-                    onChange={e => setTweakInput(e.target.value)}
-                    placeholder="Refine… more upbeat, add some jazz, etc."
-                    className="flex-1 rounded-full px-5 py-3 text-sm focus:outline-none"
-                    style={{
-                      background: "var(--color-surface-input)",
-                      border: "2px solid var(--color-border)",
-                      color: "var(--color-text)",
-                      minHeight: "48px",
-                      transition: `border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out)`,
-                    }}
-                    onFocus={e => {
-                      e.currentTarget.style.borderColor = "var(--color-accent)";
-                      e.currentTarget.style.boxShadow = "0 0 0 3px var(--color-accent-glow)";
-                    }}
-                    onBlur={e => {
-                      e.currentTarget.style.borderColor = "var(--color-border)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!tweakInput.trim()}
-                    className="btn-primary shrink-0 !px-6"
-                  >
-                    Refine
-                  </button>
-                </form>
-
-                {/* Start over */}
-                <div className="mt-5 text-center">
-                  <button onClick={handleReset} className="btn-ghost">
-                    ← Start over
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
+
+        {/* Error banner */}
+        {appState.kind === "error" && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "16px",
+              borderRadius: "16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              background: "var(--color-error-bg)",
+              border: "1px solid rgba(248, 113, 113, 0.2)",
+            }}
+          >
+            <span style={{ fontSize: "18px", marginTop: "2px" }}>⚠️</span>
+            <p style={{ fontSize: "14px", color: "var(--color-error)" }}>
+              {appState.message}
+            </p>
+          </div>
+        )}
+
+        {/* Big textarea — explicit width 100%, no Tailwind w-full reliance */}
+        <textarea
+          ref={textareaRef}
+          value={prompt}
+          onChange={e => setPrompt(e.target.value)}
+          placeholder="What do you want to hear? Describe a mood, a moment, an energy…"
+          rows={5}
+          autoFocus
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            display: "block",
+            resize: "none",
+            borderRadius: "16px",
+            padding: "16px 20px",
+            fontSize: "16px",
+            lineHeight: "1.6",
+            fontFamily: "inherit",
+            background: "rgba(255,255,255,0.06)",
+            border: "2px solid rgba(255,255,255,0.10)",
+            color: "var(--color-text)",
+            minHeight: "148px",
+            outline: "none",
+            transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+          }}
+          onFocus={e => {
+            e.currentTarget.style.borderColor = "var(--color-accent)";
+            e.currentTarget.style.boxShadow = "0 0 0 4px var(--color-accent-glow)";
+          }}
+          onBlur={e => {
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (prompt.trim()) runPipeline(prompt);
+            }
+          }}
+        />
+
+        {/* Build button — explicit full-width, overrides inline-flex */}
+        <button
+          type="submit"
+          disabled={!prompt.trim()}
+          style={{
+            marginTop: "12px",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            background: "linear-gradient(135deg, var(--color-accent), var(--color-pink))",
+            color: "#fff",
+            borderRadius: "9999px",
+            fontSize: "16px",
+            fontWeight: 700,
+            letterSpacing: "0.02em",
+            padding: "14px 28px",
+            minHeight: "52px",
+            border: "none",
+            cursor: prompt.trim() ? "pointer" : "not-allowed",
+            opacity: prompt.trim() ? 1 : 0.4,
+            boxShadow: prompt.trim() ? "0 4px 24px rgba(168, 85, 247, 0.4)" : "none",
+            transition: "all 0.25s ease",
+            fontFamily: "inherit",
+            boxSizing: "border-box",
+          }}
+        >
+          ✨ Build My Playlist
+        </button>
+
+        {/* Example chips */}
+        {appState.kind === "idle" && (
+          <div style={{ marginTop: "16px", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", color: "var(--color-text-tertiary)", fontWeight: 500 }}>
+              Try:
+            </span>
+            {EXAMPLE_PROMPTS.map(ex => (
+              <button
+                key={ex}
+                type="button"
+                onClick={() => {
+                  setPrompt(ex);
+                  textareaRef.current?.focus();
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "6px 14px",
+                  borderRadius: "9999px",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  background: "rgba(168, 85, 247, 0.10)",
+                  border: "1px solid rgba(168, 85, 247, 0.25)",
+                  color: "var(--color-accent-bright)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: "all 0.15s ease",
+                  WebkitAppearance: "none",
+                  appearance: "none",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "rgba(168, 85, 247, 0.2)";
+                  e.currentTarget.style.borderColor = "rgba(168, 85, 247, 0.5)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "rgba(168, 85, 247, 0.10)";
+                  e.currentTarget.style.borderColor = "rgba(168, 85, 247, 0.25)";
+                }}
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        )}
+      </form>
+    </div>
+  ) : null;
+
+  /* ── Shared: Header ──────────────────────────────────────────────────────── */
+
+  const header = (centered: boolean) => (
+    <div style={{ marginBottom: "32px", textAlign: centered ? "center" : "left" }}>
+      <h1
+        style={{
+          fontSize: "clamp(2.2rem, 8vw, 3rem)",
+          fontWeight: 800,
+          lineHeight: 1.1,
+          letterSpacing: "-0.02em",
+          background: "linear-gradient(135deg, #c084fc 0%, #ec4899 50%, #f59e0b 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          margin: 0,
+        }}
+      >
+        Atmosify
+      </h1>
+      <p style={{ marginTop: "8px", fontSize: "15px", color: "var(--color-text-secondary)" }}>
+        Dolby Atmos playlists built from 100,000+ verified tracks
+      </p>
+    </div>
+  );
+
+  /* ── Shared: Recent Playlists ────────────────────────────────────────────── */
+
+  const recentPlaylists = appState.kind === "idle" && recents.length > 0 ? (
+    <div style={{ marginTop: "24px" }}>
+      <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--color-text-tertiary)", marginBottom: "12px" }}>
+        Recent playlists
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {recents.map((item, i) => {
+          const pct =
+            item.playlist.tracks.length > 0
+              ? Math.round((item.playlist.atmosVerifiedCount / item.playlist.tracks.length) * 100)
+              : 0;
+          return (
+            <button
+              key={i}
+              onClick={() => {
+                setPrompt(item.prompt);
+                setAppState({ kind: "result", playlist: item.playlist });
+              }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                borderRadius: "16px",
+                padding: "14px 16px",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                WebkitAppearance: "none",
+                appearance: "none",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.playlist.title}
+                </span>
+                <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: "2px" }}>
+                  {timeAgo(item.savedAt)}
+                </span>
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--color-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>
+                {item.prompt}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px", fontSize: "11px", fontWeight: 500, color: "var(--color-text-tertiary)" }}>
+                <span>{item.playlist.tracks.length} tracks</span>
+                <span>·</span>
+                <span>{fmtDuration(item.playlist.totalDurationMs)}</span>
+                <span>·</span>
+                <span style={{ color: "var(--color-accent-bright)" }}>{pct}% Atmos</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
+    </div>
+  ) : null;
+
+  /* ── Render ──────────────────────────────────────────────────────────────── */
+
+  return (
+    <main
+      className="bg-club"
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+    >
+      <BackgroundOrbs />
+
+      {/* ── Two-pane layout (loading / result) ────────────────────────────── */}
+      {showRightPane && (
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            width: "100%",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: "40px 16px 64px",
+          }}
+        >
+          {/* On large screens: side-by-side grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "clamp(320px, 36%, 440px) 1fr",
+              gap: "40px",
+              alignItems: "start",
+            }}
+            className="two-pane-grid"
+          >
+            {/* Left: compact header */}
+            <div style={{ position: "sticky", top: "48px" }}>
+              {header(false)}
+              {appState.kind === "loading" && (
+                <div className="lg:hidden">
+                  <LoadingView startedAt={appState.startedAt} />
+                </div>
+              )}
+            </div>
+
+            {/* Right: loading / results */}
+            <div>
+              {appState.kind === "loading" && (
+                <div className="hidden lg:block">
+                  <LoadingView startedAt={appState.startedAt} />
+                </div>
+              )}
+
+              {appState.kind === "result" && (
+                <div>
+                  <PlaylistResults playlist={appState.playlist} />
+
+                  {/* Tweak */}
+                  <form onSubmit={handleTweak} style={{ marginTop: "24px", display: "flex", gap: "8px" }}>
+                    <input
+                      ref={tweakRef}
+                      value={tweakInput}
+                      onChange={e => setTweakInput(e.target.value)}
+                      placeholder="Refine… more upbeat, add some jazz, etc."
+                      style={{
+                        flex: 1,
+                        borderRadius: "9999px",
+                        padding: "12px 20px",
+                        fontSize: "14px",
+                        fontFamily: "inherit",
+                        background: "rgba(255,255,255,0.06)",
+                        border: "2px solid rgba(255,255,255,0.10)",
+                        color: "var(--color-text)",
+                        minHeight: "48px",
+                        outline: "none",
+                        transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = "var(--color-accent)";
+                        e.currentTarget.style.boxShadow = "0 0 0 3px var(--color-accent-glow)";
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!tweakInput.trim()}
+                      className="btn-primary shrink-0 !px-6"
+                    >
+                      Refine
+                    </button>
+                  </form>
+
+                  <div style={{ marginTop: "20px", textAlign: "center" }}>
+                    <button onClick={handleReset} className="btn-ghost">
+                      ← Start over
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* On mobile: stacked */}
+          <style>{`
+            @media (max-width: 767px) {
+              .two-pane-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* ── Centered single-pane layout (idle / clarify / error) ──────────── */}
+      {!showRightPane && (
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "48px 16px",
+            minHeight: "100vh",
+          }}
+        >
+          <div style={{ width: "100%", maxWidth: "520px" }}>
+            {header(true)}
+            {promptForm}
+            {recentPlaylists}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

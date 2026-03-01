@@ -96,15 +96,15 @@ body {
 .bg-club {
   background: linear-gradient(
     135deg,
-    #0a0a1a 0%,
-    #1a0a2e 20%,
-    #0d1b3e 40%,
-    #1a0a2e 60%,
-    #2a0a3e 80%,
-    #0a0a1a 100%
+    #0d0820 0%,
+    #1e0a35 20%,
+    #0e1945 40%,
+    #1e0a35 60%,
+    #300a45 80%,
+    #0d0820 100%
   );
   background-size: 300% 300%;
-  animation: gradient-shift 20s ease infinite;
+  animation: gradient-shift 18s ease infinite;
 }
 
 /* ── Skeleton Loader ───────────────────────────────────────────────────────── */
