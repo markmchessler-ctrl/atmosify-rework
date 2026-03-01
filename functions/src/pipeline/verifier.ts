@@ -24,6 +24,25 @@ export interface VerifierResult {
 }
 
 /**
+ * Write verification failure timestamps back to Firestore.
+ * Tracks that fail AM lookup get a cooldown period before being retried.
+ * Fire-and-forget — don't block the response.
+ */
+function writeVerificationFailures(db: Firestore, failedDocIds: string[]): void {
+  if (failedDocIds.length === 0) return;
+  const { Timestamp } = require("firebase-admin/firestore") as typeof import("firebase-admin/firestore");
+  const batch = db.batch();
+  for (const docId of failedDocIds) {
+    const ref = db.collection("tracks").doc(docId);
+    batch.set(ref, { am_verification_failed_at: Timestamp.now() }, { merge: true });
+  }
+  batch.commit().catch(err =>
+    console.warn("[verifier] Verification failure write-back failed:", err)
+  );
+  console.log(`[verifier] Wrote am_verification_failed_at for ${failedDocIds.length} tracks`);
+}
+
+/**
  * Write real Apple Music durations back to Firestore for future use.
  * Fire-and-forget — don't block the response.
  */
@@ -126,10 +145,11 @@ export async function verifyPlaylist(
     });
   }
 
-  // Fire-and-forget duration write-backs
+  // Fire-and-forget write-backs
   if (durationUpdates.length > 0) {
     writeDurationsBack(db, durationUpdates);
   }
+  writeVerificationFailures(db, removedDocIds);
 
   console.log(
     `[verifier] Result: ${verifiedTracks.length} verified ` +

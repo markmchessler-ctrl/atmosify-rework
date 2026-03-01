@@ -7,6 +7,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildTaxonomyPromptContext } from "../lib/genreTaxonomy.js";
+import { detectQualityIntent } from "../lib/referenceAtmos.js";
 import type { PlaylistIntent, ClarifyResult } from "../lib/types.js";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -43,9 +44,22 @@ USER REQUEST:
 "${userPrompt}"
 
 TASK:
-1. If the request is too vague to build a meaningful playlist (no genre, no mood, no vibe),
-   set needsClarification: true and provide a friendly clarificationQuestion.
-2. Otherwise, extract structured intent from the request.
+1. ALMOST NEVER ask for clarification. Only set needsClarification: true for truly
+   meaningless, zero-signal prompts like "music", "songs", "play something" —
+   prompts of 1-3 generic words with absolutely no genre, mood, vibe, or activity signal.
+
+2. These prompts MUST NOT trigger clarification (extract intent from them):
+   - "chill study music" -> genres: Ambient/Lo-Fi, moods: chill, focused
+   - "workout mix" -> moods: energetic, vibeKeywords: driving
+   - "sad songs" -> moods: melancholic
+   - "party playlist" -> moods: euphoric, energetic
+   - "late night vibes" -> moods: chill, intimate
+   - "jazz" -> genres: Jazz
+   - "90s rock" -> genres: Rock, eraPreference: 1990s
+   - "the best Atmos music" -> genres: (broad), moods: (varied)
+
+3. If ANY genre, mood, vibe, activity, era, or artist is mentioned, EXTRACT IT — do not clarify.
+4. Otherwise, extract structured intent.
 
 For genres and subGenres, map to canonical taxonomy names where possible, but common genres
 like R&B, Soul, Hip-Hop, Jazz, Classical, Country, Pop, Rock, Metal, Funk, Gospel, Latin,
@@ -116,6 +130,14 @@ export async function clarifyIntent(
       intent: PlaylistIntent | null;
     };
 
+    // Word-count safety rail: prompts with 5+ words should NEVER trigger clarification.
+    // Gemini can be over-cautious — override when the prompt clearly has signal.
+    const wordCount = userPrompt.trim().split(/\s+/).length;
+    if (parsed.needsClarification && wordCount >= 5 && parsed.intent) {
+      console.log(`[clarify] Overriding Gemini clarification (prompt has ${wordCount} words)`);
+      parsed.needsClarification = false;
+    }
+
     if (parsed.needsClarification || !parsed.intent) {
       return {
         needsClarification: true,
@@ -138,6 +160,7 @@ export async function clarifyIntent(
       artistPreferences: parsed.intent.artistPreferences ?? [],
       excludeArtists: parsed.intent.excludeArtists ?? [],
       eraPreference: parsed.intent.eraPreference ?? null,
+      referenceQuality: detectQualityIntent(userPrompt),
     };
 
     return { needsClarification: false, intent };
@@ -158,6 +181,7 @@ export async function clarifyIntent(
         artistPreferences: [],
         excludeArtists: [],
         eraPreference: null,
+        referenceQuality: detectQualityIntent(userPrompt),
       },
     };
   }

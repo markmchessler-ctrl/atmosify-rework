@@ -3,7 +3,7 @@
 //
 // Sources (in order):
 //   1. Perplexity Sonar (PRIMARY) — web-aware, great for music genre knowledge
-import { extractJSON } from "../services/perplexity.js";
+import { extractJSON } from "./perplexity.js";
 //   2. Serper (SUPPLEMENTAL) — web search for niche/specific requests
 //   3. Gemini 2.5 Flash Lite (FALLBACK) — if Perplexity is unavailable
 //
@@ -11,6 +11,7 @@ import { extractJSON } from "../services/perplexity.js";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildTaxonomyPromptContext } from "../lib/genreTaxonomy.js";
+import { buildReferencePromptFragment } from "../lib/referenceAtmos.js";
 import type { PlaylistIntent, DiscoveredArtists, DiscoveredArtist } from "../lib/types.js";
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
@@ -28,6 +29,9 @@ interface ArtistDiscoveryConfig {
  */
 function buildArtistDiscoveryPrompt(intent: PlaylistIntent, targetCount = 50): string {
   const taxonomyContext = buildTaxonomyPromptContext(intent.genres, intent.moods);
+  const referenceContext = intent.referenceQuality
+    ? buildReferencePromptFragment(intent.genres)
+    : "";
 
   const eraText = intent.eraPreference
     ? `Era preference: ${intent.eraPreference}`
@@ -43,7 +47,7 @@ function buildArtistDiscoveryPrompt(intent: PlaylistIntent, targetCount = 50): s
 
   return `${taxonomyContext}
 
-LISTENER REQUEST:
+${referenceContext}LISTENER REQUEST:
 Description: ${intent.description}
 Genres: ${intent.genres.join(", ") || "Any"}
 Sub-genres: ${intent.subGenres.join(", ") || "Any"}
@@ -313,10 +317,13 @@ export async function expandArtistDiscovery(
 ): Promise<DiscoveredArtists> {
   const topArtistNames = existingArtists.slice(0, 10).map(a => a.name).join(", ");
   const taxonomyContext = buildTaxonomyPromptContext(intent.genres, intent.moods);
+  const referenceContext = intent.referenceQuality
+    ? buildReferencePromptFragment(intent.genres)
+    : "";
 
   const expansionPrompt = `${taxonomyContext}
 
-EXISTING ARTISTS ALREADY DISCOVERED (DO NOT REPEAT THESE):
+${referenceContext}EXISTING ARTISTS ALREADY DISCOVERED (DO NOT REPEAT THESE):
 ${topArtistNames}
 
 LISTENER REQUEST:

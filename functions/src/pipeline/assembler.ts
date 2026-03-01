@@ -17,7 +17,7 @@ import type {
 import { curatePlaylist } from "./curator.js";
 import { verifyPlaylist } from "./verifier.js";
 
-const GAP_FILL_THRESHOLD = 0.70; // fill if < 70% of target track count
+const GAP_FILL_THRESHOLD = 0.60; // fill if < 60% of target track count (lowered to absorb verification drops)
 const DEFAULT_DURATION_MS = 240_000;
 
 interface AssemblerConfig {

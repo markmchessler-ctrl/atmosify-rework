@@ -13,6 +13,7 @@ export interface PlaylistIntent {
   artistPreferences: string[];
   excludeArtists: string[];
   eraPreference: string | null;
+  referenceQuality: boolean;
 }
 
 export interface DiscoveredArtist {

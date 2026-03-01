@@ -7,7 +7,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { TrackCandidate, PlaylistIntent, PlaylistDraft, PlaylistDraftTrack } from "../lib/types.js";
 import { getBpmRange } from "../lib/genreTaxonomy.js";
-import { extractJSON } from "../services/perplexity.js";
+import { extractJSON } from "./perplexity.js";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 // Max candidates to send to Gemini in a single prompt (token budget)
@@ -77,6 +77,8 @@ SELECTION CRITERIA (in order of priority):
 5. DURATION — Target ${Math.round(targetDurationMs / 60000)} minutes total (use ~4:00 estimate for tracks without duration)
 6. RELEVANCE — Prefer tracks from higher-relevance artists (relevance field closer to 1.0)
 7. BPM COHERENCE — Expected BPM range for this genre: ${bpmRange[0]}-${bpmRange[1]} BPM
+8. METADATA QUALITY — Tracks with mood 'unknown' have incomplete metadata — prefer tracks with known mood/energy data
+${intent.referenceQuality ? "9. QUALITY PRIORITY — This listener specifically wants reference-quality Dolby Atmos mixes. Prefer tracks by artists known for exceptional spatial audio production." : ""}
 
 SEQUENCING RULES:
 - Start with a track that immediately establishes the mood
@@ -212,29 +214,40 @@ export async function curatePlaylist(
   const targetTrackCount = intent.targetTrackCount
     ?? Math.max(10, Math.round(targetDurationMs / avgDurationMs));
 
+  // Request 1.4x tracks from curator to absorb verification drops (Fix 2)
+  const curatorTargetCount = Math.ceil(targetTrackCount * 1.4);
+
+  // Filter/sort unknown-mood candidates (Fix 3): prefer enriched tracks
+  const enriched = candidates.filter(c => c.atmos_mood && c.atmos_mood !== "unknown");
+  const underEnriched = candidates.filter(c => !c.atmos_mood || c.atmos_mood === "unknown");
+  const filteredCandidates = enriched.length >= targetTrackCount * 2
+    ? enriched
+    : [...enriched, ...underEnriched]; // keep under-enriched if pool too thin
+
   console.log(
-    `[curator] Curating ${targetTrackCount} tracks from ${candidates.length} candidates. ` +
+    `[curator] Curating ${curatorTargetCount} tracks (1.4x overshoot of ${targetTrackCount}) from ${filteredCandidates.length} candidates ` +
+    `(${enriched.length} enriched, ${underEnriched.length} under-enriched). ` +
     `Target: ${intent.targetDurationMinutes} min`
   );
 
-  const prompt = buildCuratorPrompt(intent, candidates, targetTrackCount, targetDurationMs);
+  const prompt = buildCuratorPrompt(intent, filteredCandidates, curatorTargetCount, targetDurationMs);
   const selections = await curatWithGemini(prompt, config.geminiApiKey);
 
   if (!selections || selections.length === 0) {
     console.warn("[curator] Gemini curation failed, using rule-based fallback");
-    const tracks = ruleBasedSelection(candidates, targetTrackCount, targetDurationMs, intent);
+    const tracks = ruleBasedSelection(filteredCandidates, curatorTargetCount, targetDurationMs, intent);
     const selectedDocIds = new Set(tracks.map(t => t.docId));
     return {
       draft: {
         tracks,
-        unusedCandidates: candidates.filter(c => !selectedDocIds.has(c.docId)),
+        unusedCandidates: filteredCandidates.filter(c => !selectedDocIds.has(c.docId)),
       },
       curatedByAI: false,
     };
   }
 
   // Map docIds back to full candidate data
-  const candidateMap = new Map(candidates.map(c => [c.docId, c]));
+  const candidateMap = new Map(filteredCandidates.map(c => [c.docId, c]));
   const draftTracks: PlaylistDraftTrack[] = [];
   const usedDocIds = new Set<string>();
 
@@ -262,7 +275,7 @@ export async function curatePlaylist(
   // Sort by assigned position
   draftTracks.sort((a, b) => a.position - b.position);
 
-  const unusedCandidates = candidates.filter(c => !usedDocIds.has(c.docId));
+  const unusedCandidates = filteredCandidates.filter(c => !usedDocIds.has(c.docId));
 
   console.log(`[curator] Gemini selected ${draftTracks.length} tracks, ${unusedCandidates.length} unused`);
 

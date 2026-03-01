@@ -77,6 +77,10 @@ export async function runPipeline(
   const intent = clarifyResult.intent;
   const minCandidates = getMinCandidates(intent);
 
+  if (intent.referenceQuality) {
+    console.log("[orchestrator] Reference quality mode ACTIVE");
+  }
+
   const discoveryConfig = {
     perplexityApiKey: config.perplexityApiKey,
     geminiApiKey: config.geminiApiKey,
@@ -90,7 +94,7 @@ export async function runPipeline(
 
   // ── Stage 3: DBMatcher ────────────────────────────────────────────────────
   console.log("[orchestrator] Stage 3: DBMatcher");
-  let matchResult = await matchArtistsToTracks(db, { artists: allDiscoveredArtists, searchStrategy: discovered.searchStrategy });
+  let matchResult = await matchArtistsToTracks(db, { artists: allDiscoveredArtists, searchStrategy: discovered.searchStrategy }, intent);
   let candidates = matchResult.candidates;
 
   // Expansion loops if candidate pool is too thin
@@ -109,7 +113,7 @@ export async function runPipeline(
     }
 
     allDiscoveredArtists = [...allDiscoveredArtists, ...expanded.artists];
-    const expandMatch = await matchArtistsToTracks(db, { artists: expanded.artists, searchStrategy: "expansion" });
+    const expandMatch = await matchArtistsToTracks(db, { artists: expanded.artists, searchStrategy: "expansion" }, intent);
     candidates = mergeUnique(candidates, expandMatch.candidates);
   }
 

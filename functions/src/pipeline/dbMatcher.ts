@@ -4,8 +4,9 @@
 // Uses exact match + prefix search fallback to handle artist name variants.
 // Runs queries in parallel batches to maximize throughput.
 
-import type { Firestore } from "firebase-admin/firestore";
-import type { DiscoveredArtists, TrackCandidate } from "../lib/types.js";
+import type { Firestore, Timestamp } from "firebase-admin/firestore";
+import type { DiscoveredArtists, DiscoveredArtist, TrackCandidate, PlaylistIntent } from "../lib/types.js";
+import { getReferenceArtistsForGenre } from "../lib/referenceAtmos.js";
 
 const PARALLEL_BATCH_SIZE = 10;  // Firestore parallel query limit
 const MAX_TRACKS_PER_ARTIST = 50; // cap per artist to avoid one artist dominating
@@ -22,7 +23,17 @@ interface FirestoreTrackDoc {
   atmos_energy?: number;
   atmos_vibe?: string[];
   atmos_tempo_estimate?: number;
+  am_verification_failed_at?: Timestamp;
   [key: string]: unknown;
+}
+
+const VERIFICATION_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/** Skip tracks that recently failed Apple Music verification */
+function isRecentlyFailed(failedAt: Timestamp | undefined): boolean {
+  if (!failedAt) return false;
+  const failedMs = failedAt.toMillis();
+  return Date.now() - failedMs < VERIFICATION_COOLDOWN_MS;
 }
 
 /**
@@ -60,6 +71,7 @@ async function queryArtistTracks(
       for (const doc of exactSnap.docs) {
         const data = doc.data() as FirestoreTrackDoc;
         if (!data.Apple_Music_ID) continue;
+        if (isRecentlyFailed(data.am_verification_failed_at)) continue;
         results.push(docToCandidate(doc.id, data, artistRelevance, artistGenreContext));
       }
       return { tracks: results, matched: true };
@@ -81,6 +93,7 @@ async function queryArtistTracks(
       for (const doc of prefixSnap.docs) {
         const data = doc.data() as FirestoreTrackDoc;
         if (!data.Apple_Music_ID) continue;
+        if (isRecentlyFailed(data.am_verification_failed_at)) continue;
         results.push(docToCandidate(doc.id, data, artistRelevance, artistGenreContext));
       }
       return { tracks: results, matched: results.length > 0 };
@@ -103,6 +116,7 @@ async function queryArtistTracks(
         for (const doc of normSnap.docs) {
           const data = doc.data() as FirestoreTrackDoc;
           if (!data.Apple_Music_ID) continue;
+          if (isRecentlyFailed(data.am_verification_failed_at)) continue;
           results.push(docToCandidate(doc.id, data, artistRelevance, artistGenreContext));
         }
         return { tracks: results, matched: results.length > 0 };
@@ -152,13 +166,31 @@ export interface DBMatchResult {
  */
 export async function matchArtistsToTracks(
   db: Firestore,
-  discovered: DiscoveredArtists
+  discovered: DiscoveredArtists,
+  intent?: PlaylistIntent
 ): Promise<DBMatchResult> {
   const allCandidates = new Map<string, TrackCandidate>(); // docId → candidate
   const matchedArtists: string[] = [];
   const unmatchedArtists: string[] = [];
 
-  const artists = discovered.artists;
+  let artists = discovered.artists;
+
+  // Prepend reference artists when reference quality mode is active
+  if (intent?.referenceQuality) {
+    const refArtists = getReferenceArtistsForGenre(intent.genres);
+    const existingNames = new Set(artists.map(a => a.name.toLowerCase()));
+    const refAsDiscovered: DiscoveredArtist[] = refArtists
+      .filter(ra => !existingNames.has(ra.name.toLowerCase()))
+      .map(ra => ({
+        name: ra.name,
+        relevanceScore: 0.95,
+        genreContext: ra.genres.join(", "),
+        knownFor: ra.knownForAtmos,
+      }));
+    artists = [...refAsDiscovered, ...artists];
+    console.log(`[dbMatcher] Reference quality: prepended ${refAsDiscovered.length} reference artists`);
+  }
+
   console.log(`[dbMatcher] Querying ${artists.length} artists in Firestore...`);
 
   // Process in parallel batches
