@@ -1,6 +1,6 @@
 "use client";
 // app/components/SaveToAppleMusic.tsx
-// Save an Atmosify playlist to Apple Music — M3 dark themed.
+// Save an Atmosify playlist to Apple Music — vibrant club themed.
 
 import { useState, useCallback } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
@@ -94,8 +94,8 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
     return (
       <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
         <div
-          className="flex items-center gap-2 text-sm font-medium"
-          style={{ color: "var(--atmos-success)" }}
+          className="flex items-center gap-2 text-sm font-semibold"
+          style={{ color: "var(--color-success)" }}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -104,13 +104,13 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
               clipRule="evenodd"
             />
           </svg>
-          Saved to Apple Music
+          Saved to Apple Music!
         </div>
         <p
           style={{
-            fontSize: "12px",
-            letterSpacing: "0.4px",
-            color: "var(--md-sys-color-on-surface-variant)",
+            fontSize: "13px",
+            letterSpacing: "0.3px",
+            color: "var(--color-text-secondary)",
           }}
         >
           {playlist.tracks.length} tracks · Open the Music app to listen
@@ -118,7 +118,7 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
         {savedPlaylistId && (
           <a
             href={`music://music.apple.com/library/playlists/${savedPlaylistId}`}
-            className="btn-outlined !text-sm !min-h-[36px]"
+            className="btn-outlined"
           >
             Open in Music app
           </a>
@@ -133,8 +133,8 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
     return (
       <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
         <div
-          className="flex items-center gap-2 text-sm font-medium"
-          style={{ color: "var(--md-sys-color-error)" }}
+          className="flex items-center gap-2 text-sm font-semibold"
+          style={{ color: "var(--color-error)" }}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -149,9 +149,9 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
           <p
             className="text-center max-w-xs"
             style={{
-              fontSize: "12px",
-              letterSpacing: "0.4px",
-              color: "var(--md-sys-color-on-surface-variant)",
+              fontSize: "13px",
+              letterSpacing: "0.3px",
+              color: "var(--color-text-secondary)",
             }}
           >
             {errorMessage}
@@ -162,13 +162,13 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
             className="text-center max-w-xs"
             style={{
               fontSize: "12px",
-              color: "var(--md-sys-color-outline)",
+              color: "var(--color-text-tertiary)",
             }}
           >
             An Apple Music subscription is required to save playlists.
           </p>
         )}
-        <button onClick={handleRetry} className="btn-text !text-sm">
+        <button onClick={handleRetry} className="btn-ghost">
           Try again
         </button>
       </div>
@@ -180,7 +180,7 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
   const isLoading = saveState !== "idle";
 
   const stateLabel: Record<SaveState, string> = {
-    idle: "Save to Apple Music",
+    idle: " Save to Apple Music",
     fetching_token: "Connecting…",
     authorizing: "Sign in to Apple Music…",
     creating: "Creating playlist…",
@@ -193,24 +193,19 @@ export function SaveToAppleMusic({ playlist, className }: SaveToAppleMusicProps)
       onClick={handleSave}
       disabled={isLoading}
       className={`
-        flex items-center gap-2.5 rounded-full font-medium text-sm
-        transition-all active:scale-[0.98]
+        btn-primary w-full justify-center
+        ${isLoading ? "!opacity-60 !cursor-not-allowed !transform-none !shadow-none" : ""}
         ${className ?? ""}
       `}
-      style={{
-        background: isLoading
-          ? "var(--md-sys-color-surface-container-high)"
-          : "var(--md-sys-color-primary)",
-        color: isLoading
-          ? "var(--md-sys-color-on-surface-variant)"
-          : "var(--md-sys-color-on-primary)",
-        padding: "12px 24px",
-        minHeight: "44px",
-        letterSpacing: "0.1px",
-        opacity: isLoading ? 0.7 : 1,
-        cursor: isLoading ? "not-allowed" : "pointer",
-        border: "none",
-      }}
+      style={
+        isLoading
+          ? {
+              background: "var(--color-surface-hover)",
+              color: "var(--color-text-secondary)",
+              boxShadow: "none",
+            }
+          : undefined
+      }
     >
       {isLoading ? (
         <svg className="w-[18px] h-[18px] animate-spin" fill="none" viewBox="0 0 24 24">

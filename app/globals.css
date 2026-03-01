@@ -3,91 +3,71 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   Atmosify — Material 3 Dark Theme Design Tokens
-   Seed color: Royal Blue #4169E1
+   Atmosify — Vibrant Music Club Theme
+   Electric purples, warm magentas, deep blues — alive and inviting.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── M3 Color Roles (Dark) ─────────────────────────────────────────────── */
-  --md-sys-color-primary:                #ADC6FF;
-  --md-sys-color-on-primary:             #002E69;
-  --md-sys-color-primary-container:      #17458A;
-  --md-sys-color-on-primary-container:   #D6E3FF;
+  /* ── Core Palette ──────────────────────────────────────────────────────── */
+  --color-bg-deep:         #0a0a1a;
+  --color-bg-mid:          #12122a;
+  --color-surface:         rgba(255, 255, 255, 0.05);
+  --color-surface-hover:   rgba(255, 255, 255, 0.08);
+  --color-surface-raised:  rgba(255, 255, 255, 0.07);
+  --color-surface-input:   rgba(255, 255, 255, 0.06);
 
-  --md-sys-color-secondary:              #BEC6DC;
-  --md-sys-color-on-secondary:           #283041;
-  --md-sys-color-secondary-container:    #3E4759;
-  --md-sys-color-on-secondary-container: #DAE2F9;
+  /* Accent colors — electric & warm */
+  --color-accent:          #a855f7;   /* vibrant purple */
+  --color-accent-bright:   #c084fc;   /* lighter purple */
+  --color-accent-glow:     rgba(168, 85, 247, 0.35);
+  --color-pink:            #ec4899;   /* hot pink */
+  --color-pink-glow:       rgba(236, 72, 153, 0.25);
+  --color-blue:            #3b82f6;   /* electric blue */
+  --color-blue-glow:       rgba(59, 130, 246, 0.25);
+  --color-cyan:            #22d3ee;   /* neon cyan */
+  --color-amber:           #fbbf24;   /* warm amber */
 
-  --md-sys-color-tertiary:               #DEBCE0;
-  --md-sys-color-on-tertiary:            #3F2843;
-  --md-sys-color-tertiary-container:     #573E5B;
-  --md-sys-color-on-tertiary-container:  #FBD8FC;
+  /* Text */
+  --color-text:            #f1f1f7;
+  --color-text-secondary:  rgba(241, 241, 247, 0.60);
+  --color-text-tertiary:   rgba(241, 241, 247, 0.35);
+  --color-text-on-accent:  #ffffff;
 
-  --md-sys-color-error:                  #FFB4AB;
-  --md-sys-color-on-error:               #690005;
-  --md-sys-color-error-container:        #93000A;
-  --md-sys-color-on-error-container:     #FFDAD6;
+  /* Borders */
+  --color-border:          rgba(255, 255, 255, 0.10);
+  --color-border-subtle:   rgba(255, 255, 255, 0.06);
 
-  --md-sys-color-surface:                    #111318;
-  --md-sys-color-on-surface:                 #E2E2E9;
-  --md-sys-color-on-surface-variant:         #C4C6D0;
-  --md-sys-color-surface-container-lowest:   #0C0E13;
-  --md-sys-color-surface-container-low:      #191C20;
-  --md-sys-color-surface-container:          #1D2024;
-  --md-sys-color-surface-container-high:     #282A2F;
-  --md-sys-color-surface-container-highest:  #33353A;
+  /* Status */
+  --color-atmos-verified:     #a855f7;
+  --color-atmos-verified-bg:  rgba(168, 85, 247, 0.15);
+  --color-atmos-warning:      #fbbf24;
+  --color-atmos-warning-bg:   rgba(251, 191, 36, 0.12);
+  --color-success:            #34d399;
+  --color-success-bg:         rgba(52, 211, 153, 0.12);
+  --color-error:              #f87171;
+  --color-error-bg:           rgba(248, 113, 113, 0.12);
 
-  --md-sys-color-outline:                #8E9099;
-  --md-sys-color-outline-variant:        #44474E;
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
 
-  --md-sys-color-inverse-surface:        #E2E2E9;
-  --md-sys-color-inverse-on-surface:     #2F3036;
-  --md-sys-color-inverse-primary:        #3B5BA9;
-
-  /* ── App-Specific Semantic Tokens ──────────────────────────────────────── */
-  --atmos-verified:       #ADC6FF;
-  --atmos-verified-bg:    rgba(173, 198, 255, 0.12);
-  --atmos-warning:        #DEBCE0;
-  --atmos-warning-bg:     rgba(222, 188, 224, 0.10);
-  --atmos-success:        #A8DAB5;
-  --atmos-success-bg:     rgba(168, 218, 181, 0.12);
-
-  /* ── M3 Shape (Corner Radius) ──────────────────────────────────────────── */
-  --md-sys-shape-corner-none:        0px;
-  --md-sys-shape-corner-extra-small: 4px;
-  --md-sys-shape-corner-small:       8px;
-  --md-sys-shape-corner-medium:      12px;
-  --md-sys-shape-corner-large:       16px;
-  --md-sys-shape-corner-extra-large: 28px;
-  --md-sys-shape-corner-full:        9999px;
-
-  /* ── M3 Elevation (Dark) ───────────────────────────────────────────────── */
-  --md-sys-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.15), 0 1px 2px 0 rgba(0,0,0,0.3);
-  --md-sys-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.15), 0 1px 2px 0 rgba(0,0,0,0.3);
-  --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px 0 rgba(0,0,0,0.3);
-
-  /* ── M3 Motion ─────────────────────────────────────────────────────────── */
-  --md-sys-motion-duration-short1:  50ms;
-  --md-sys-motion-duration-short2:  100ms;
-  --md-sys-motion-duration-short3:  150ms;
-  --md-sys-motion-duration-short4:  200ms;
-  --md-sys-motion-duration-medium1: 250ms;
-  --md-sys-motion-duration-medium2: 300ms;
-  --md-sys-motion-duration-medium3: 350ms;
-  --md-sys-motion-duration-medium4: 400ms;
-
-  --md-sys-motion-easing-standard:              cubic-bezier(0.2, 0, 0, 1);
-  --md-sys-motion-easing-emphasized:            cubic-bezier(0.2, 0, 0, 1);
-  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
 }
 
 /* ── Body ──────────────────────────────────────────────────────────────────── */
 
 body {
-  background-color: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
+  background-color: var(--color-bg-deep);
+  color: var(--color-text);
   font-family: var(--font-inter, 'Inter', sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -95,18 +75,36 @@ body {
 
 /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--md-sys-color-outline-variant);
+  background: rgba(168, 85, 247, 0.3);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--md-sys-color-outline);
+  background: rgba(168, 85, 247, 0.5);
+}
+
+/* ── Animated Background Gradient ──────────────────────────────────────────── */
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-club {
+  background: linear-gradient(
+    135deg,
+    #0a0a1a 0%,
+    #1a0a2e 20%,
+    #0d1b3e 40%,
+    #1a0a2e 60%,
+    #2a0a3e 80%,
+    #0a0a1a 100%
+  );
+  background-size: 300% 300%;
+  animation: gradient-shift 20s ease infinite;
 }
 
 /* ── Skeleton Loader ───────────────────────────────────────────────────────── */
@@ -119,7 +117,8 @@ body {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--md-sys-color-surface-container);
+  background: rgba(168, 85, 247, 0.08);
+  border-radius: var(--radius-md);
 }
 
 .skeleton::after {
@@ -129,106 +128,99 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.04) 50%,
+    rgba(168, 85, 247, 0.06) 50%,
     transparent 100%
   );
   animation: skeleton-wave 1.8s ease-in-out infinite;
 }
 
-/* ── M3 Filled Button ─────────────────────────────────────────────────────── */
+/* ── Glow Pulse for accent elements ────────────────────────────────────────── */
 
-.btn-filled {
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--color-accent-glow), 0 0 40px rgba(168, 85, 247, 0.1); }
+  50%      { box-shadow: 0 0 30px var(--color-accent-glow), 0 0 60px rgba(168, 85, 247, 0.15); }
+}
+
+/* ── Glass Card ────────────────────────────────────────────────────────────── */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+}
+
+.glass-card-raised {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xl);
+}
+
+/* ── Primary Gradient Button ───────────────────────────────────────────────── */
+
+.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-  border-radius: var(--md-sys-shape-corner-full);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  line-height: 20px;
-  padding: 10px 24px;
-  min-height: 44px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-pink));
+  color: var(--color-text-on-accent);
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 12px 28px;
+  min-height: 48px;
   border: none;
   cursor: pointer;
-  transition: all var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+  transition: all var(--duration-normal) var(--ease-out);
+  box-shadow: 0 4px 20px var(--color-accent-glow);
   -webkit-tap-highlight-color: transparent;
 }
-.btn-filled:hover {
-  box-shadow: var(--md-sys-elevation-1);
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 30px var(--color-accent-glow);
 }
-.btn-filled:active {
-  transform: scale(0.98);
+.btn-primary:active {
+  transform: scale(0.97);
 }
-.btn-filled:disabled {
-  opacity: 0.38;
+.btn-primary:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
+  transform: none;
   box-shadow: none;
 }
 
-/* ── M3 Filled Tonal Button ───────────────────────────────────────────────── */
+/* ── Ghost Button ──────────────────────────────────────────────────────────── */
 
-.btn-filled-tonal {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
-  border-radius: var(--md-sys-shape-corner-full);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  line-height: 20px;
-  padding: 10px 24px;
-  min-height: 44px;
-  border: none;
-  cursor: pointer;
-  transition: all var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-filled-tonal:hover {
-  box-shadow: var(--md-sys-elevation-1);
-}
-.btn-filled-tonal:active {
-  transform: scale(0.98);
-}
-.btn-filled-tonal:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-}
-
-/* ── M3 Text Button ───────────────────────────────────────────────────────── */
-
-.btn-text {
+.btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   background: transparent;
-  color: var(--md-sys-color-primary);
-  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--color-accent-bright);
+  border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.1px;
-  line-height: 20px;
-  padding: 10px 16px;
+  padding: 10px 20px;
   min-height: 44px;
   border: none;
   cursor: pointer;
-  transition: background var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+  transition: all var(--duration-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
-.btn-text:hover {
-  background: rgba(173, 198, 255, 0.08);
+.btn-ghost:hover {
+  background: rgba(168, 85, 247, 0.1);
 }
-.btn-text:active {
-  transform: scale(0.98);
+.btn-ghost:active {
+  transform: scale(0.97);
 }
 
-/* ── M3 Outlined Button ───────────────────────────────────────────────────── */
+/* ── Outlined Button ───────────────────────────────────────────────────────── */
 
 .btn-outlined {
   display: inline-flex;
@@ -236,27 +228,27 @@ body {
   justify-content: center;
   gap: 8px;
   background: transparent;
-  color: var(--md-sys-color-primary);
-  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--color-accent-bright);
+  border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.1px;
-  line-height: 20px;
+  letter-spacing: 0.02em;
   padding: 10px 24px;
-  min-height: 36px;
-  border: 1px solid var(--md-sys-color-outline);
+  min-height: 40px;
+  border: 1px solid rgba(168, 85, 247, 0.4);
   cursor: pointer;
-  transition: all var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+  transition: all var(--duration-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 .btn-outlined:hover {
-  background: rgba(173, 198, 255, 0.08);
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.6);
 }
 .btn-outlined:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
-/* ── Details chevron rotation ──────────────────────────────────────────────── */
+/* ── Details chevron ───────────────────────────────────────────────────────── */
 
 details[open] > summary .chevron-icon {
   transform: rotate(180deg);

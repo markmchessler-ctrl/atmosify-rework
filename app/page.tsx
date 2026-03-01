@@ -1,6 +1,6 @@
 "use client";
 // app/page.tsx
-// Atmosify main page — Material 3 dark theme with responsive two-pane layout.
+// Atmosify — vibrant music club theme with big inviting textarea.
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
@@ -72,58 +72,39 @@ function LoadingView({ startedAt }: { startedAt: number }) {
         <div
           className="w-5 h-5 rounded-full border-2 animate-spin shrink-0"
           style={{
-            borderColor: "var(--md-sys-color-outline-variant)",
-            borderTopColor: "var(--md-sys-color-primary)",
+            borderColor: "rgba(168, 85, 247, 0.2)",
+            borderTopColor: "var(--color-accent)",
           }}
         />
-        <p
-          className="text-sm"
-          style={{ color: "var(--md-sys-color-on-surface-variant)" }}
-        >
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
           {stageMsg}
         </p>
       </div>
 
       {/* Skeleton playlist header */}
       <div className="space-y-2.5">
-        <div className="skeleton h-6 w-3/5 rounded-lg" />
+        <div className="skeleton h-7 w-3/5 rounded-lg" />
         <div className="skeleton h-4 w-4/5 rounded-md" />
         <div className="skeleton h-3 w-2/5 rounded-md" />
       </div>
 
       {/* Skeleton Save button */}
-      <div className="skeleton h-11 w-48 rounded-full" />
+      <div className="skeleton h-12 w-52 rounded-full" />
 
       {/* Skeleton track list */}
-      <div
-        className="rounded-3xl overflow-hidden"
-        style={{
-          background: "var(--md-sys-color-surface-container-lowest)",
-          border: "1px solid var(--md-sys-color-outline-variant)",
-        }}
-      >
+      <div className="glass-card-raised overflow-hidden !rounded-2xl">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i}>
             {i > 0 && (
-              <div
-                className="mx-4"
-                style={{ height: "1px", background: "var(--md-sys-color-outline-variant)" }}
-              />
+              <div className="mx-4" style={{ height: "1px", background: "var(--color-border-subtle)" }} />
             )}
             <SkeletonTrackRow index={i} />
           </div>
         ))}
       </div>
 
-      {/* Elapsed timer */}
-      <p
-        className="text-center"
-        style={{
-          fontSize: "11px",
-          letterSpacing: "0.5px",
-          color: "var(--md-sys-color-outline)",
-        }}
-      >
+      {/* Elapsed */}
+      <p className="text-center" style={{ fontSize: "11px", color: "var(--color-text-tertiary)", letterSpacing: "0.5px" }}>
         {elapsedSec}s · usually 90–120s
       </p>
     </div>
@@ -233,62 +214,55 @@ export default function AtmosifyPage() {
     appState.kind === "loading" || appState.kind === "result";
 
   return (
-    <main className="min-h-screen" style={{ background: "var(--md-sys-color-surface)" }}>
-      {/* Subtle branded gradient overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 120% 40% at 50% 0%, rgba(59,91,169,0.15) 0%, transparent 60%)",
-        }}
-      />
+    <main className="min-h-screen bg-club">
+      {/* Colorful orbs — ambient background light */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full opacity-30 blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)" }}
+        />
+        <div
+          className="absolute top-1/4 -right-40 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.5) 0%, transparent 70%)" }}
+        />
+        <div
+          className="absolute -bottom-40 left-1/3 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)" }}
+        />
+      </div>
 
       <div
         className={`
-          relative z-10 mx-auto max-w-[1200px] px-4 py-12 sm:py-16
-          ${showRightPane ? "lg:grid lg:grid-cols-[minmax(340px,420px)_1fr] lg:gap-10 lg:items-start" : ""}
+          relative z-10 mx-auto max-w-[1200px] px-4 py-10 sm:py-16
+          ${showRightPane ? "lg:grid lg:grid-cols-[minmax(360px,440px)_1fr] lg:gap-10 lg:items-start" : ""}
         `}
       >
         {/* ─── Left Pane: Prompt Area ──────────────────────────────────────── */}
-        <div
-          className={`
-            ${showRightPane ? "lg:sticky lg:top-16" : "max-w-2xl mx-auto"}
-          `}
-        >
+        <div className={showRightPane ? "lg:sticky lg:top-12" : "max-w-2xl mx-auto"}>
+
           {/* Header */}
           <div className={`mb-8 ${showRightPane ? "lg:text-left" : "text-center"}`}>
             <h1
-              className="font-bold tracking-tight"
+              className="font-extrabold tracking-tight"
               style={{
-                fontSize: "2rem",
-                lineHeight: "2.5rem",
-                color: "var(--md-sys-color-on-surface)",
+                fontSize: "2.5rem",
+                lineHeight: "1.1",
+                background: "linear-gradient(135deg, #c084fc, #ec4899, #f59e0b)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
               }}
             >
               Atmosify
             </h1>
-            <p
-              className="mt-1.5"
-              style={{
-                fontSize: "14px",
-                lineHeight: "20px",
-                letterSpacing: "0.25px",
-                color: "var(--md-sys-color-on-surface-variant)",
-              }}
-            >
+            <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--color-text-secondary)" }}>
               Dolby Atmos playlists built from 100,000+ verified tracks
             </p>
           </div>
 
-          {/* Prompt form — M3 card */}
+          {/* Prompt form */}
           {showPromptArea && (
-            <div
-              className="rounded-3xl p-5 mb-6"
-              style={{
-                background: "var(--md-sys-color-surface-container-low)",
-                border: "1px solid var(--md-sys-color-outline-variant)",
-              }}
-            >
+            <div className="glass-card p-5 sm:p-6 mb-6">
               <form onSubmit={appState.kind === "clarify" ? handleClarifySubmit : handleSubmit}>
 
                 {/* Clarification banner */}
@@ -296,33 +270,16 @@ export default function AtmosifyPage() {
                   <div
                     className="mb-4 p-4 rounded-2xl flex items-start gap-3"
                     style={{
-                      background: "var(--md-sys-color-surface-container)",
-                      border: "1px solid var(--md-sys-color-outline-variant)",
+                      background: "rgba(168, 85, 247, 0.1)",
+                      border: "1px solid rgba(168, 85, 247, 0.2)",
                     }}
                   >
-                    <svg
-                      className="w-5 h-5 shrink-0 mt-0.5"
-                      style={{ color: "var(--md-sys-color-primary)" }}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <span className="text-lg mt-0.5">💬</span>
                     <div>
-                      <span
-                        className="font-medium text-sm"
-                        style={{ color: "var(--md-sys-color-on-surface)" }}
-                      >
-                        One quick question
+                      <span className="font-semibold text-sm" style={{ color: "var(--color-accent-bright)" }}>
+                        Quick question
                       </span>
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--md-sys-color-on-surface-variant)" }}
-                      >
+                      <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
                         {appState.question}
                       </p>
                     </div>
@@ -334,55 +291,42 @@ export default function AtmosifyPage() {
                   <div
                     className="mb-4 p-4 rounded-2xl flex items-start gap-3"
                     style={{
-                      background: "var(--md-sys-color-error-container)",
+                      background: "var(--color-error-bg)",
+                      border: "1px solid rgba(248, 113, 113, 0.2)",
                     }}
                   >
-                    <svg
-                      className="w-5 h-5 shrink-0 mt-0.5"
-                      style={{ color: "var(--md-sys-color-on-error-container)" }}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <p
-                      className="text-sm"
-                      style={{ color: "var(--md-sys-color-on-error-container)" }}
-                    >
+                    <span className="text-lg mt-0.5">⚠️</span>
+                    <p className="text-sm" style={{ color: "var(--color-error)" }}>
                       {appState.message}
                     </p>
                   </div>
                 )}
 
-                {/* Textarea — M3 outlined text field */}
+                {/* Big textarea */}
                 <div className="relative">
                   <textarea
                     ref={textareaRef}
                     value={prompt}
                     onChange={e => setPrompt(e.target.value)}
-                    placeholder="Describe your vibe… e.g. chill late night R&B, warm and introspective, 20 minutes"
-                    rows={3}
+                    placeholder="What do you want to hear? Describe a mood, a moment, an energy…"
+                    rows={5}
                     autoFocus
-                    className="w-full resize-none rounded-2xl px-4 py-3 pr-24 text-sm focus:outline-none"
+                    className="w-full resize-none rounded-2xl px-5 py-4 text-base leading-relaxed focus:outline-none"
                     style={{
-                      background: "var(--md-sys-color-surface-container)",
-                      border: "2px solid var(--md-sys-color-outline-variant)",
-                      color: "var(--md-sys-color-on-surface)",
-                      fontSize: "14px",
-                      lineHeight: "20px",
-                      letterSpacing: "0.25px",
-                      transition: `border-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard)`,
+                      background: "var(--color-surface-input)",
+                      border: "2px solid var(--color-border)",
+                      color: "var(--color-text)",
+                      minHeight: "140px",
+                      transition: `border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out)`,
                     }}
-                    onFocus={e =>
-                      (e.currentTarget.style.borderColor = "var(--md-sys-color-primary)")
-                    }
-                    onBlur={e =>
-                      (e.currentTarget.style.borderColor = "var(--md-sys-color-outline-variant)")
-                    }
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = "var(--color-accent)";
+                      e.currentTarget.style.boxShadow = "0 0 0 4px var(--color-accent-glow)";
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = "var(--color-border)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                     onKeyDown={e => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -390,18 +334,23 @@ export default function AtmosifyPage() {
                       }
                     }}
                   />
-                  <button
-                    type="submit"
-                    disabled={!prompt.trim()}
-                    className="btn-filled absolute bottom-3 right-3 !px-5 !py-2 !min-h-[40px] text-sm"
-                  >
-                    Build
-                  </button>
                 </div>
 
-                {/* Example chips — M3 suggestion chips */}
+                {/* Build button — full width below textarea */}
+                <button
+                  type="submit"
+                  disabled={!prompt.trim()}
+                  className="btn-primary w-full mt-4 text-base"
+                >
+                  ✨ Build My Playlist
+                </button>
+
+                {/* Example chips */}
                 {appState.kind === "idle" && (
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="text-xs mr-1 self-center" style={{ color: "var(--color-text-tertiary)" }}>
+                      Try:
+                    </span>
                     {EXAMPLE_PROMPTS.map(ex => (
                       <button
                         key={ex}
@@ -410,13 +359,12 @@ export default function AtmosifyPage() {
                           setPrompt(ex);
                           textareaRef.current?.focus();
                         }}
-                        className="rounded-full px-3.5 py-2 text-xs transition-all hover:bg-white/[0.06]"
+                        className="rounded-full px-3 py-1.5 text-xs transition-all"
                         style={{
-                          border: "1px solid var(--md-sys-color-outline)",
-                          color: "var(--md-sys-color-on-surface-variant)",
+                          background: "rgba(168, 85, 247, 0.08)",
+                          border: "1px solid rgba(168, 85, 247, 0.2)",
+                          color: "var(--color-accent-bright)",
                           fontWeight: 500,
-                          letterSpacing: "0.1px",
-                          minHeight: "32px",
                         }}
                       >
                         {ex}
@@ -428,20 +376,11 @@ export default function AtmosifyPage() {
             </div>
           )}
 
-          {/* Recent playlists — idle state only */}
+          {/* Recent playlists */}
           {appState.kind === "idle" && recents.length > 0 && (
             <div className="mt-6">
-              <p
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                  color: "var(--md-sys-color-on-surface-variant)",
-                  marginBottom: "12px",
-                }}
-              >
-                Recent
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+                Recent playlists
               </p>
               <div className="space-y-2">
                 {recents.map((item, i) => {
@@ -460,49 +399,30 @@ export default function AtmosifyPage() {
                         setPrompt(item.prompt);
                         setAppState({ kind: "result", playlist: item.playlist });
                       }}
-                      className="w-full text-left rounded-2xl px-4 py-3.5 transition-all hover:bg-white/[0.04]"
+                      className="w-full text-left rounded-2xl px-4 py-3.5 transition-all hover:scale-[1.01]"
                       style={{
-                        background: "var(--md-sys-color-surface-container-low)",
-                        border: "1px solid var(--md-sys-color-outline-variant)",
+                        background: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
+                        transition: `all var(--duration-normal) var(--ease-out)`,
                       }}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <span
-                          className="text-sm font-medium truncate leading-snug"
-                          style={{ color: "var(--md-sys-color-on-surface)" }}
-                        >
+                        <span className="text-sm font-semibold truncate leading-snug" style={{ color: "var(--color-text)" }}>
                           {item.playlist.title}
                         </span>
-                        <span
-                          className="shrink-0 mt-px"
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--md-sys-color-outline)",
-                          }}
-                        >
+                        <span className="shrink-0 mt-px" style={{ fontSize: "11px", color: "var(--color-text-tertiary)" }}>
                           {timeAgo(item.savedAt)}
                         </span>
                       </div>
-                      <div
-                        className="text-xs truncate mt-0.5"
-                        style={{ color: "var(--md-sys-color-on-surface-variant)" }}
-                      >
+                      <div className="text-xs truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
                         {item.prompt}
                       </div>
-                      <div
-                        className="flex items-center gap-2 mt-2"
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          letterSpacing: "0.5px",
-                          color: "var(--md-sys-color-outline)",
-                        }}
-                      >
+                      <div className="flex items-center gap-2 mt-2" style={{ fontSize: "11px", fontWeight: 500, color: "var(--color-text-tertiary)" }}>
                         <span>{item.playlist.tracks.length} tracks</span>
-                        <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
+                        <span>·</span>
                         <span>{fmtDuration(item.playlist.totalDurationMs)}</span>
-                        <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
-                        <span>{pct}% Atmos</span>
+                        <span>·</span>
+                        <span style={{ color: "var(--color-accent-bright)" }}>{pct}% Atmos</span>
                       </div>
                     </button>
                   );
@@ -511,7 +431,7 @@ export default function AtmosifyPage() {
             </div>
           )}
 
-          {/* Prompt area also visible during loading on mobile (collapsed on desktop) */}
+          {/* Loading on mobile */}
           {appState.kind === "loading" && (
             <div className="lg:hidden">
               <LoadingView startedAt={appState.startedAt} />
@@ -519,10 +439,9 @@ export default function AtmosifyPage() {
           )}
         </div>
 
-        {/* ─── Right Pane: Loading / Results (desktop) ─────────────────────── */}
+        {/* ─── Right Pane: Loading / Results ────────────────────────────────── */}
         {showRightPane && (
           <div>
-            {/* Loading — desktop only (mobile shown above in left pane) */}
             {appState.kind === "loading" && (
               <div className="hidden lg:block">
                 <LoadingView startedAt={appState.startedAt} />
@@ -533,33 +452,34 @@ export default function AtmosifyPage() {
               <div>
                 <PlaylistResults playlist={appState.playlist} />
 
-                {/* Tweak / refine form */}
+                {/* Tweak form */}
                 <form onSubmit={handleTweak} className="mt-6 flex gap-2">
                   <input
                     ref={tweakRef}
                     value={tweakInput}
                     onChange={e => setTweakInput(e.target.value)}
-                    placeholder="Refine… e.g. more upbeat, add some jazz"
-                    className="flex-1 rounded-full px-4 py-2.5 text-sm focus:outline-none"
+                    placeholder="Refine… more upbeat, add some jazz, etc."
+                    className="flex-1 rounded-full px-5 py-3 text-sm focus:outline-none"
                     style={{
-                      background: "var(--md-sys-color-surface-container)",
-                      border: "2px solid var(--md-sys-color-outline-variant)",
-                      color: "var(--md-sys-color-on-surface)",
-                      minHeight: "44px",
-                      letterSpacing: "0.25px",
-                      transition: `border-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard)`,
+                      background: "var(--color-surface-input)",
+                      border: "2px solid var(--color-border)",
+                      color: "var(--color-text)",
+                      minHeight: "48px",
+                      transition: `border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out)`,
                     }}
-                    onFocus={e =>
-                      (e.currentTarget.style.borderColor = "var(--md-sys-color-primary)")
-                    }
-                    onBlur={e =>
-                      (e.currentTarget.style.borderColor = "var(--md-sys-color-outline-variant)")
-                    }
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = "var(--color-accent)";
+                      e.currentTarget.style.boxShadow = "0 0 0 3px var(--color-accent-glow)";
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = "var(--color-border)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                   />
                   <button
                     type="submit"
                     disabled={!tweakInput.trim()}
-                    className="btn-filled !px-5 shrink-0"
+                    className="btn-primary shrink-0 !px-6"
                   >
                     Refine
                   </button>
@@ -567,8 +487,8 @@ export default function AtmosifyPage() {
 
                 {/* Start over */}
                 <div className="mt-5 text-center">
-                  <button onClick={handleReset} className="btn-text">
-                    Start over
+                  <button onClick={handleReset} className="btn-ghost">
+                    ← Start over
                   </button>
                 </div>
               </div>

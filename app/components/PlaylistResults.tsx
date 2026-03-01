@@ -1,6 +1,6 @@
 "use client";
 // app/components/PlaylistResults.tsx
-// M3 dark-themed track list with Apple Music album art.
+// Vibrant music-club themed track list with Apple Music album art.
 
 import { useEffect, useState } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
@@ -100,7 +100,7 @@ function AlbumArt({
       className="w-11 h-11 shrink-0 relative overflow-hidden flex items-center justify-center"
       style={{
         background: getArtistGradient(artist),
-        borderRadius: "var(--md-sys-shape-corner-medium)",
+        borderRadius: "var(--radius-md)",
       }}
     >
       <span
@@ -115,6 +115,7 @@ function AlbumArt({
           src={artworkUrl}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ borderRadius: "var(--radius-md)" }}
           onError={e => {
             e.currentTarget.style.display = "none";
           }}
@@ -134,27 +135,28 @@ function AtmosBadge({
   if (verified) {
     return (
       <span
-        className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full font-medium"
+        className="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold"
         style={{
           fontSize: "11px",
           letterSpacing: "0.5px",
-          background: "var(--atmos-verified-bg)",
-          color: "var(--md-sys-color-primary)",
+          background: "var(--color-atmos-verified-bg)",
+          color: "var(--color-atmos-verified)",
+          boxShadow: "0 0 8px rgba(168, 85, 247, 0.2)",
         }}
       >
-        Atmos
+        ✓ Atmos
       </span>
     );
   }
   if (warning) {
     return (
       <span
-        className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full font-medium"
+        className="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold"
         style={{
           fontSize: "11px",
           letterSpacing: "0.5px",
-          background: "var(--atmos-warning-bg)",
-          color: "var(--md-sys-color-tertiary)",
+          background: "var(--color-atmos-warning-bg)",
+          color: "var(--color-atmos-warning)",
         }}
       >
         Atmos?
@@ -173,8 +175,17 @@ function TrackCard({
 }) {
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-white/[0.04]"
-      style={{ minHeight: "56px" }}
+      className="flex items-center gap-3 px-4 py-3 transition-all"
+      style={{
+        minHeight: "56px",
+        borderRadius: "var(--radius-md)",
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = "var(--color-surface-hover)";
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = "transparent";
+      }}
     >
       <AlbumArt artist={track.Artist} artworkUrl={artworkUrl} />
 
@@ -186,7 +197,7 @@ function TrackCard({
               fontSize: "14px",
               lineHeight: "20px",
               fontWeight: 500,
-              color: "var(--md-sys-color-on-surface)",
+              color: "var(--color-text)",
               letterSpacing: "0.1px",
             }}
           >
@@ -198,7 +209,7 @@ function TrackCard({
             style={{
               fontSize: "12px",
               lineHeight: "16px",
-              color: "var(--md-sys-color-on-surface-variant)",
+              color: "var(--color-text-secondary)",
               letterSpacing: "0.4px",
             }}
           >
@@ -215,7 +226,7 @@ function TrackCard({
             fontSize: "12px",
             fontWeight: 500,
             letterSpacing: "0.5px",
-            color: "var(--md-sys-color-outline)",
+            color: "var(--color-text-tertiary)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
@@ -251,10 +262,10 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
       <div className="mb-6">
         <h2
           style={{
-            fontSize: "22px",
-            lineHeight: "28px",
-            fontWeight: 500,
-            color: "var(--md-sys-color-on-surface)",
+            fontSize: "24px",
+            lineHeight: "32px",
+            fontWeight: 700,
+            color: "var(--color-text)",
           }}
         >
           {playlist.title}
@@ -263,9 +274,9 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
           className="mt-2"
           style={{
             fontSize: "14px",
-            lineHeight: "20px",
+            lineHeight: "22px",
             letterSpacing: "0.25px",
-            color: "var(--md-sys-color-on-surface-variant)",
+            color: "var(--color-text-secondary)",
           }}
         >
           {playlist.description}
@@ -275,29 +286,39 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
         <div
           className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3"
           style={{
-            fontSize: "12px",
+            fontSize: "13px",
             fontWeight: 500,
-            letterSpacing: "0.5px",
-            color: "var(--md-sys-color-outline)",
+            letterSpacing: "0.3px",
+            color: "var(--color-text-tertiary)",
           }}
         >
-          <span>{playlist.tracks.length} tracks</span>
-          <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
-          <span>{formatTotalDuration(playlist.totalDurationMs)}</span>
-          <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
-          <span>{atmosVerifiedPct}% Atmos confirmed</span>
+          <span>🎵 {playlist.tracks.length} tracks</span>
+          <span style={{ color: "var(--color-border)" }}>·</span>
+          <span>⏱ {formatTotalDuration(playlist.totalDurationMs)}</span>
+          <span style={{ color: "var(--color-border)" }}>·</span>
+          <span
+            style={{ color: "var(--color-accent-bright)" }}
+          >
+            {atmosVerifiedPct}% Atmos confirmed
+          </span>
           {playlist.atmosWarningCount > 0 && (
             <>
-              <span style={{ color: "var(--md-sys-color-outline-variant)" }}>·</span>
-              <span>{playlist.atmosWarningCount} unverified</span>
+              <span style={{ color: "var(--color-border)" }}>·</span>
+              <span style={{ color: "var(--color-atmos-warning)" }}>
+                {playlist.atmosWarningCount} unverified
+              </span>
             </>
           )}
         </div>
 
         {/* Build details */}
         <details
-          className="mt-3 rounded-2xl overflow-hidden"
-          style={{ background: "var(--md-sys-color-surface-container-low)" }}
+          className="mt-4 overflow-hidden"
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border-subtle)",
+            borderRadius: "var(--radius-lg)",
+          }}
         >
           <summary
             className="px-4 py-3 cursor-pointer flex items-center gap-2 select-none"
@@ -305,7 +326,7 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
               fontSize: "12px",
               fontWeight: 500,
               letterSpacing: "0.5px",
-              color: "var(--md-sys-color-on-surface-variant)",
+              color: "var(--color-text-secondary)",
             }}
           >
             <svg
@@ -322,20 +343,26 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
             Build details
           </summary>
           <div
-            className="px-4 pb-3 grid grid-cols-2 gap-x-6 gap-y-1"
+            className="px-4 pb-3 grid grid-cols-2 gap-x-6 gap-y-1.5"
             style={{
               fontSize: "12px",
-              color: "var(--md-sys-color-outline)",
+              color: "var(--color-text-tertiary)",
             }}
           >
             <span>Candidates found</span>
-            <span className="text-right">{playlist.buildMetadata.candidatesFound}</span>
+            <span className="text-right" style={{ color: "var(--color-text-secondary)" }}>
+              {playlist.buildMetadata.candidatesFound}
+            </span>
             <span>Enriched</span>
-            <span className="text-right">{playlist.buildMetadata.enrichedTracks}</span>
+            <span className="text-right" style={{ color: "var(--color-text-secondary)" }}>
+              {playlist.buildMetadata.enrichedTracks}
+            </span>
             <span>Dropped at verification</span>
-            <span className="text-right">{playlist.buildMetadata.verificationDropped}</span>
+            <span className="text-right" style={{ color: "var(--color-text-secondary)" }}>
+              {playlist.buildMetadata.verificationDropped}
+            </span>
             <span>Build time</span>
-            <span className="text-right">
+            <span className="text-right" style={{ color: "var(--color-text-secondary)" }}>
               {(playlist.buildMetadata.buildDurationMs / 1000).toFixed(1)}s
             </span>
           </div>
@@ -343,16 +370,19 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
       </div>
 
       {/* Save to Apple Music */}
-      <div className="mb-5">
+      <div className="mb-6">
         <SaveToAppleMusic playlist={playlist} />
       </div>
 
       {/* Track list */}
       <div
-        className="rounded-3xl overflow-hidden"
+        className="overflow-hidden"
         style={{
-          background: "var(--md-sys-color-surface-container-lowest)",
-          border: "1px solid var(--md-sys-color-outline-variant)",
+          background: "rgba(255, 255, 255, 0.03)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid var(--color-border)",
+          borderRadius: "var(--radius-xl)",
         }}
       >
         {playlist.tracks.map((track, i) => (
@@ -362,7 +392,7 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
                 className="mx-4"
                 style={{
                   height: "1px",
-                  background: "var(--md-sys-color-outline-variant)",
+                  background: "var(--color-border-subtle)",
                 }}
               />
             )}
@@ -380,7 +410,7 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
           style={{
             fontSize: "12px",
             letterSpacing: "0.4px",
-            color: "var(--md-sys-color-outline)",
+            color: "var(--color-text-tertiary)",
           }}
         >
           Tracks marked Atmos? come from verified artist catalogs but could not

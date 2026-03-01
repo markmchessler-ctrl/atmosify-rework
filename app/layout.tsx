@@ -1,5 +1,5 @@
 // app/layout.tsx
-// Root layout — Inter font via next/font, MusicKit JS CDN, M3 theme color.
+// Root layout — Inter font via next/font, MusicKit JS CDN, club theme.
 
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Atmosify — Dolby Atmos Playlist Maker",
   description:
     "Build premium Dolby Atmos playlists curated from 100k+ verified tracks",
-  themeColor: "#111318",
+  themeColor: "#0a0a1a",
 };
 
 export const viewport: Viewport = {
