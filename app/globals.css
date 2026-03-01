@@ -253,3 +253,57 @@ body {
 details[open] > summary .chevron-icon {
   transform: rotate(180deg);
 }
+
+/* ── Two-pane grid mobile breakpoint ──────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .two-pane-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Mobile Polish ────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  /* Touch targets: minimum 48px */
+  .btn-primary,
+  .btn-ghost,
+  .btn-outlined {
+    min-height: 48px;
+  }
+
+  /* Refine row: stack input + button vertically */
+  .refine-row {
+    flex-direction: column !important;
+  }
+  .refine-input {
+    width: 100% !important;
+  }
+  .refine-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Example chips: larger tap targets */
+  .chip-touch {
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
+
+  /* Playlist header: scale down on small screens */
+  .playlist-title {
+    font-size: 20px !important;
+    line-height: 28px !important;
+  }
+
+  /* Track card meta: allow wrapping on narrow screens */
+  .track-card-meta {
+    flex-wrap: wrap;
+    gap: 4px !important;
+  }
+
+  /* Build details grid: single column on mobile */
+  .build-details-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

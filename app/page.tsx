@@ -408,6 +408,7 @@ export default function AtmosifyPage() {
               <button
                 key={ex}
                 type="button"
+                className="chip-touch"
                 onClick={() => {
                   setPrompt(ex);
                   textareaRef.current?.focus();
@@ -587,12 +588,13 @@ export default function AtmosifyPage() {
                   <PlaylistResults playlist={appState.playlist} />
 
                   {/* Tweak */}
-                  <form onSubmit={handleTweak} style={{ marginTop: "24px", display: "flex", gap: "8px" }}>
+                  <form onSubmit={handleTweak} className="refine-row" style={{ marginTop: "24px", display: "flex", gap: "8px" }}>
                     <input
                       ref={tweakRef}
                       value={tweakInput}
                       onChange={e => setTweakInput(e.target.value)}
                       placeholder="Refine… more upbeat, add some jazz, etc."
+                      className="refine-input"
                       style={{
                         flex: 1,
                         borderRadius: "9999px",
@@ -618,7 +620,7 @@ export default function AtmosifyPage() {
                     <button
                       type="submit"
                       disabled={!tweakInput.trim()}
-                      className="btn-primary shrink-0 !px-6"
+                      className="btn-primary shrink-0 !px-6 refine-btn"
                     >
                       Refine
                     </button>
@@ -634,14 +636,6 @@ export default function AtmosifyPage() {
             </div>
           </div>
 
-          {/* On mobile: stacked */}
-          <style>{`
-            @media (max-width: 767px) {
-              .two-pane-grid {
-                grid-template-columns: 1fr !important;
-              }
-            }
-          `}</style>
         </div>
       )}
 

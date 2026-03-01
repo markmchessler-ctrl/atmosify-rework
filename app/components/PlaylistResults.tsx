@@ -219,7 +219,7 @@ function TrackCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 track-card-meta">
         <AtmosBadge verified={track.atmosVerified} warning={track.atmosWarning} />
         <span
           style={{
@@ -261,6 +261,7 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
       {/* Playlist header */}
       <div className="mb-6">
         <h2
+          className="playlist-title"
           style={{
             fontSize: "24px",
             lineHeight: "32px",
