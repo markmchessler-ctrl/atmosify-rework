@@ -6,6 +6,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
 import { app } from "./lib/firebase";
 import { PlaylistResults } from "./components/PlaylistResults";
+import {
+  loadRecent,
+  saveRecent,
+  type StoredPlaylist,
+} from "./lib/recentPlaylists";
 import type { AtmosPlaylist } from "../src/lib/types";
 
 const LOADING_STAGES = [
@@ -72,12 +77,35 @@ const EXAMPLE_PROMPTS = [
   "ambient electronic, focus and flow, 45 minutes",
 ];
 
+function timeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function fmtDuration(ms: number): string {
+  const totalMins = Math.round(ms / 60000);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 export default function AtmosifyPage() {
   const [prompt, setPrompt] = useState("");
   const [tweakInput, setTweakInput] = useState("");
   const [appState, setAppState] = useState<AppState>({ kind: "idle" });
+  const [recents, setRecents] = useState<StoredPlaylist[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const tweakRef = useRef<HTMLInputElement>(null);
+
+  // Load recents from localStorage on mount (client-only)
+  useEffect(() => {
+    setRecents(loadRecent());
+  }, []);
 
   const runPipeline = useCallback(async (userPrompt: string) => {
     if (!userPrompt.trim()) return;
@@ -97,6 +125,7 @@ export default function AtmosifyPage() {
 
       if (data.status === "success") {
         setAppState({ kind: "result", playlist: data.playlist });
+        setRecents(saveRecent(userPrompt, data.playlist));
       } else if (data.status === "needs_clarification") {
         setAppState({ kind: "clarify", question: data.clarificationQuestion });
       } else {
@@ -240,6 +269,60 @@ export default function AtmosifyPage() {
                 </div>
               )}
             </form>
+          </div>
+        )}
+
+        {/* Recent playlists — shown only in idle state */}
+        {appState.kind === "idle" && recents.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-medium text-white/25 uppercase tracking-wider mb-3">
+              Recent
+            </p>
+            <div className="space-y-2">
+              {recents.map((item, i) => {
+                const pct =
+                  item.playlist.tracks.length > 0
+                    ? Math.round(
+                        (item.playlist.atmosVerifiedCount /
+                          item.playlist.tracks.length) *
+                          100
+                      )
+                    : 0;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setPrompt(item.prompt);
+                      setAppState({ kind: "result", playlist: item.playlist });
+                    }}
+                    className="w-full text-left rounded-xl px-4 py-3 transition hover:bg-white/[0.05]"
+                    style={{
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-sm font-medium text-white/80 truncate leading-snug">
+                        {item.playlist.title}
+                      </span>
+                      <span className="text-xs text-white/25 shrink-0 mt-px">
+                        {timeAgo(item.savedAt)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-white/30 truncate mt-0.5">
+                      {item.prompt}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5 text-xs text-white/20">
+                      <span>{item.playlist.tracks.length} tracks</span>
+                      <span>·</span>
+                      <span>{fmtDuration(item.playlist.totalDurationMs)}</span>
+                      <span>·</span>
+                      <span>{pct}% Atmos</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
