@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { app } from "../lib/firebase";
 import { PlaylistResults } from "../components/PlaylistResults";
-import type { AtmosPlaylist } from "../../functions/src/lib/types";
+import type { AtmosPlaylist } from "../../src/lib/types";
 
 type ShareState =
   | { kind: "loading" }

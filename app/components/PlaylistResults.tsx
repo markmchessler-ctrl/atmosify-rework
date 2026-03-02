@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
 import { app } from "../lib/firebase";
 import { SaveToAppleMusic } from "./SaveToAppleMusic";
-import type { AtmosPlaylist, VerifiedTrack } from "../../functions/src/lib/types";
+import type { AtmosPlaylist, VerifiedTrack } from "../../src/lib/types";
 
 interface PlaylistResultsProps {
   playlist: AtmosPlaylist;
