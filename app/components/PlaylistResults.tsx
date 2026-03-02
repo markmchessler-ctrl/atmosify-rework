@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { getFunctions, httpsCallableFromURL } from "firebase/functions";
 import { app } from "../lib/firebase";
 import { SaveToAppleMusic } from "./SaveToAppleMusic";
-import type { AtmosPlaylist, VerifiedTrack } from "../../src/lib/types";
+import type { AtmosPlaylist, VerifiedTrack } from "../../functions/src/lib/types";
 
 interface PlaylistResultsProps {
   playlist: AtmosPlaylist;
@@ -237,6 +237,77 @@ function TrackCard({
   );
 }
 
+// ── Share Button ──────────────────────────────────────────────────────────────
+
+function ShareButton({ playlist }: { playlist: AtmosPlaylist }) {
+  const [status, setStatus] = useState<"idle" | "sharing" | "copied" | "error">("idle");
+
+  const handleShare = async () => {
+    setStatus("sharing");
+    try {
+      const functions = getFunctions(app);
+      const sharePlaylist = httpsCallableFromURL<
+        { playlist: AtmosPlaylist },
+        { shareId: string }
+      >(functions, "https://shareplaylist-or54ak2xqq-uc.a.run.app");
+
+      const { data } = await sharePlaylist({ playlist });
+      const shareUrl = `${window.location.origin}/share?id=${data.shareId}`;
+
+      // Try native share first, fall back to clipboard
+      if (navigator.share) {
+        await navigator.share({
+          title: playlist.title,
+          text: `Check out this Atmos playlist: ${playlist.title}`,
+          url: shareUrl,
+        });
+        setStatus("idle");
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setStatus("copied");
+        setTimeout(() => setStatus("idle"), 2500);
+      }
+    } catch (err) {
+      // User cancelled native share
+      if (err instanceof Error && err.name === "AbortError") {
+        setStatus("idle");
+        return;
+      }
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      disabled={status === "sharing"}
+      className="btn-outlined"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "13px",
+        opacity: status === "sharing" ? 0.6 : 1,
+      }}
+    >
+      {status === "idle" && (
+        <>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+          Share
+        </>
+      )}
+      {status === "sharing" && "Sharing..."}
+      {status === "copied" && "Link copied!"}
+      {status === "error" && "Failed — try again"}
+    </button>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function PlaylistResults({ playlist }: PlaylistResultsProps) {
@@ -370,9 +441,10 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
         </details>
       </div>
 
-      {/* Save to Apple Music */}
-      <div className="mb-6">
+      {/* Actions: Save + Share */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <SaveToAppleMusic playlist={playlist} />
+        <ShareButton playlist={playlist} />
       </div>
 
       {/* Track list */}

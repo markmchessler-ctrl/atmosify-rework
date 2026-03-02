@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Shared playlists: anyone can read (public share links), only backend writes
+    match /sharedPlaylists/{shareId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Rate limits: backend only
+    match /rateLimits/{doc} {
+      allow read, write: if false;
+    }
+
+    // Default: deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
