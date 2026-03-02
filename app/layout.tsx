@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   title: "Atmosify — Dolby Atmos Playlist Maker",
   description:
     "Build premium Dolby Atmos playlists curated from 100k+ verified tracks",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Atmosify",
+  },
 };
 
 export const viewport: Viewport = {
@@ -33,6 +39,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body>
         {children}
         {/* MusicKit JS — loaded before interactive so it's available on first render */}
@@ -40,6 +49,12 @@ export default function RootLayout({
           src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"
           strategy="beforeInteractive"
         />
+        {/* Service Worker registration */}
+        <Script id="sw-register" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+          }
+        `}</Script>
       </body>
     </html>
   );
