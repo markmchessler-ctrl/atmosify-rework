@@ -2,7 +2,7 @@
 // app/share/page.tsx
 // Shared playlist viewer — fetches from Firestore sharedPlaylists collection.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { app } from "../lib/firebase";
@@ -16,6 +16,25 @@ type ShareState =
   | { kind: "error"; message: string };
 
 export default function SharePage() {
+  return (
+    <Suspense fallback={<ShareLoading />}>
+      <ShareContent />
+    </Suspense>
+  );
+}
+
+function ShareLoading() {
+  return (
+    <main className="bg-club" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid rgba(168, 85, 247, 0.2)", borderTopColor: "var(--color-accent)", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+        <p style={{ fontSize: "14px", color: "var(--color-text-secondary)" }}>Loading playlist...</p>
+      </div>
+    </main>
+  );
+}
+
+function ShareContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [state, setState] = useState<ShareState>({ kind: "loading" });
