@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+firebase-debug.log*
+firebase-debug.*.log*
+
+# Firebase cache
+.firebase/
+
+# Environment
+.env
+*.env
+functions/.env
+
+# Service accounts
+serviceAccount.json
+
+# OS
+.DS_Store
+
+# Build output
+/lib/
+functions/lib/
+
+# Next.js
+.next/
+out/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo

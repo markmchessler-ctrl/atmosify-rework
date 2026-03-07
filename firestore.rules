@@ -12,6 +12,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Discovery cache: backend only (Cloud Functions via Admin SDK)
+    match /discoveryCache/{docId} {
+      allow read, write: if false;
+    }
+
     // Default: deny all
     match /{document=**} {
       allow read, write: if false;

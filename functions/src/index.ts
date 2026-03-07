@@ -1,4 +1,4 @@
-// src/index.ts — Atmosify Cloud Functions
+// src/index.ts -- Atmosify Cloud Functions
 // DB-first Dolby Atmos playlist engine with rate limiting + sharing.
 
 import { randomBytes } from "crypto";
@@ -18,10 +18,10 @@ import {
 } from "./lib/rateLimit.js";
 import type { AtmosPlaylist } from "./lib/types.js";
 
-// ── Initialize the default Firebase app (for nextn project) ────────────────
+// -- Initialize the default Firebase app (for nextn project) ----------------
 initializeApp();
 
-// ── Secrets ────────────────────────────────────────────────────────────────
+// -- Secrets ----------------------------------------------------------------
 const GEMINI_API_KEY      = defineSecret("GEMINI_API_KEY");
 const PERPLEXITY_API_KEY  = defineSecret("PERPLEXITY_API_KEY");
 const SERPER_API_KEY      = defineSecret("SERPER_API_KEY");
@@ -30,7 +30,7 @@ const APPLE_KEY_ID        = defineSecret("APPLE_KEY_ID");
 const APPLE_PRIVATE_KEY   = defineSecret("APPLE_PRIVATE_KEY");
 // ATMOS_DB_SERVICE_ACCOUNT is imported from atmosDb.ts
 
-// ── runAtmosify — Main playlist builder ────────────────────────────────────
+// -- runAtmosify -- Main playlist builder ------------------------------------
 export const runAtmosify = onCall(
   {
     memory: "1GiB",
@@ -56,7 +56,7 @@ export const runAtmosify = onCall(
       );
     }
 
-    const data = request.data as { prompt?: string };
+    const data = request.data as { prompt?: string; jobId?: string };
     const prompt = data?.prompt?.trim();
 
     if (!prompt) {
@@ -70,6 +70,7 @@ export const runAtmosify = onCall(
       appleTeamId:       APPLE_TEAM_ID.value(),
       appleKeyId:        APPLE_KEY_ID.value(),
       applePrivateKey:   APPLE_PRIVATE_KEY.value(),
+      jobId:             data.jobId,
     });
 
     if (result.needsClarification) {
@@ -93,7 +94,7 @@ export const runAtmosify = onCall(
   }
 );
 
-// ── getAppleMusicDevToken — Returns Apple Music developer JWT ──────────────
+// -- getAppleMusicDevToken -- Returns Apple Music developer JWT --------------
 export const getAppleMusicDevToken = onCall(
   {
     secrets: [APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY],
@@ -118,7 +119,7 @@ export const getAppleMusicDevToken = onCall(
   }
 );
 
-// ── sharePlaylist — Store a playlist for sharing ───────────────────────────
+// -- sharePlaylist -- Store a playlist for sharing ---------------------------
 function generateShareId(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const bytes = randomBytes(12);
@@ -129,7 +130,7 @@ function generateShareId(): string {
 
 export const sharePlaylist = onCall(
   {
-    // No secrets needed — uses default nextn Firestore
+    // No secrets needed -- uses default nextn Firestore
   },
   async (request) => {
     // Rate limit: 20 requests per hour per IP

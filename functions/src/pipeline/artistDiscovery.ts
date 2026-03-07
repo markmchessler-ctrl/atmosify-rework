@@ -2,21 +2,87 @@
 // Stage 2: Discover artists matching the user's vibe/mood/genre request.
 //
 // Sources (in order):
-//   1. Perplexity Sonar (PRIMARY) — web-aware, great for music genre knowledge
+//   1. Perplexity Sonar (PRIMARY) -- web-aware, great for music genre knowledge
 import { extractJSON } from "./perplexity.js";
-//   2. Serper (SUPPLEMENTAL) — web search for niche/specific requests
-//   3. Gemini 2.5 Flash Lite (FALLBACK) — if Perplexity is unavailable
+//   2. Serper (SUPPLEMENTAL) -- web search for niche/specific requests
+//   3. Gemini 3.1 Flash Lite (FALLBACK) -- if Perplexity is unavailable
 //
 // All prompts are grounded in the NotebookLM genre taxonomy.
 
+import { createHash } from "crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getFirestore } from "firebase-admin/firestore";
 import { buildTaxonomyPromptContext } from "../lib/genreTaxonomy.js";
 import { buildReferencePromptFragment } from "../lib/referenceAtmos.js";
 import type { PlaylistIntent, DiscoveredArtists, DiscoveredArtist } from "../lib/types.js";
 
+// -- Discovery cache --------------------------------------------------------
+const DISCOVERY_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const DISCOVERY_CACHE_COLLECTION = "discoveryCache";
+
+interface CachedDiscovery {
+  artists: DiscoveredArtist[];
+  searchStrategy: string;
+  cachedAt: number;
+  intentDescription: string;
+}
+
+function buildDiscoveryCacheKey(intent: PlaylistIntent): string {
+  const keyParts = {
+    description: intent.description,
+    genres: [...intent.genres].sort(),
+    subGenres: [...intent.subGenres].sort(),
+    moods: [...intent.moods].sort(),
+    vibeKeywords: [...intent.vibeKeywords].sort(),
+    energyRange: intent.energyRange,
+    eraPreference: intent.eraPreference ?? "any",
+    artistPreferences: [...intent.artistPreferences].sort(),
+    excludeArtists: [...intent.excludeArtists].sort(),
+    referenceQuality: intent.referenceQuality,
+  };
+  return "discovery_" + createHash("sha256")
+    .update(JSON.stringify(keyParts))
+    .digest("hex")
+    .slice(0, 16);
+}
+
+async function getFromCache(cacheKey: string): Promise<DiscoveredArtists | null> {
+  try {
+    const doc = await getFirestore()
+      .collection(DISCOVERY_CACHE_COLLECTION)
+      .doc(cacheKey)
+      .get();
+    if (!doc.exists) return null;
+    const data = doc.data() as CachedDiscovery;
+    if (Date.now() - data.cachedAt > DISCOVERY_CACHE_TTL_MS) return null;
+    return { artists: data.artists, searchStrategy: data.searchStrategy + "+cached" };
+  } catch {
+    return null;
+  }
+}
+
+async function writeToCache(
+  cacheKey: string,
+  result: DiscoveredArtists,
+  intentDescription: string
+): Promise<void> {
+  try {
+    await getFirestore()
+      .collection(DISCOVERY_CACHE_COLLECTION)
+      .doc(cacheKey)
+      .set({
+        artists: result.artists,
+        searchStrategy: result.searchStrategy,
+        cachedAt: Date.now(),
+        intentDescription,
+      });
+  } catch (err) {
+    console.warn("[artistDiscovery] Cache write failed:", err);
+  }
+}
+
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
-// Gemini model — update to "gemini-2.5-flash-lite" when generally available
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
 interface ArtistDiscoveryConfig {
   perplexityApiKey: string;
@@ -35,14 +101,14 @@ function buildArtistDiscoveryPrompt(intent: PlaylistIntent, targetCount = 50): s
 
   const eraText = intent.eraPreference
     ? `Era preference: ${intent.eraPreference}`
-    : "No specific era preference — include classic and contemporary artists.";
+    : "No specific era preference -- include classic and contemporary artists.";
 
   const excludeText = intent.excludeArtists.length > 0
     ? `Exclude these artists: ${intent.excludeArtists.join(", ")}`
     : "";
 
   const includeText = intent.artistPreferences.length > 0
-    ? `The listener specifically likes: ${intent.artistPreferences.join(", ")} — include similar artists.`
+    ? `The listener specifically likes: ${intent.artistPreferences.join(", ")} -- include similar artists.`
     : "";
 
   return `${taxonomyContext}
@@ -53,7 +119,7 @@ Genres: ${intent.genres.join(", ") || "Any"}
 Sub-genres: ${intent.subGenres.join(", ") || "Any"}
 Moods: ${intent.moods.join(", ") || "Any"}
 Vibe keywords: ${intent.vibeKeywords.join(", ") || "Any"}
-Energy level (1-10): ${intent.energyRange[0]}–${intent.energyRange[1]}
+Energy level (1-10): ${intent.energyRange[0]}-${intent.energyRange[1]}
 ${eraText}
 ${includeText}
 ${excludeText}
@@ -92,22 +158,53 @@ function buildSerperQuery(intent: PlaylistIntent): string {
 }
 
 /**
- * Parse artist names from Serper search results.
- * Extracts artist names from titles and snippets heuristically.
+ * Extract artist names from Serper search results using Gemini.
+ * Replaces fragile regex with AI-based extraction.
  */
-function parseArtistsFromSerperResults(results: SerperResult[]): string[] {
-  const names = new Set<string>();
-  for (const r of results) {
-    // Look for patterns like "Top 10 [genre] artists" numbered lists in snippets
-    const text = `${r.title} ${r.snippet}`;
-    // Basic extraction: look for quoted names or capitalized proper noun sequences
-    const matches = text.match(/["']([A-Z][a-zA-Z\s&'.-]{2,30})["']/g) ?? [];
-    for (const m of matches) {
-      const name = m.replace(/['"]/g, "").trim();
-      if (name.length > 2 && name.length < 50) names.add(name);
+async function extractArtistsFromSerperResults(
+  results: SerperResult[],
+  geminiApiKey: string
+): Promise<string[]> {
+  const snippetText = results
+    .map(r => `Title: ${r.title}\nSnippet: ${r.snippet}`)
+    .join("\n\n");
+
+  if (!snippetText.trim()) return [];
+
+  try {
+    const genAI = new GoogleGenerativeAI(geminiApiKey);
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      generationConfig: { responseMimeType: "application/json", temperature: 0 },
+    });
+
+    const result = await model.generateContent(
+      `Extract all music artist/band names mentioned in these search results. Return ONLY valid JSON:\n{"artists": ["Artist Name 1", "Artist Name 2"]}\n\nSearch results:\n${snippetText}`
+    );
+    const text = result.response.text();
+    const parsed = JSON.parse(text) as { artists: string[] };
+    return (parsed.artists ?? []).slice(0, 20);
+  } catch {
+    console.warn("[artistDiscovery] Gemini extraction from Serper results failed, falling back to regex");
+    // Regex fallback: numbered lists, quoted names, capitalized proper nouns
+    const names = new Set<string>();
+    for (const r of results) {
+      const text = `${r.title} ${r.snippet}`;
+      // Match numbered list items: "1. Artist Name", "2) Artist Name"
+      const numbered = text.match(/\d+[\.)]\s*([A-Z][a-zA-Z\s&'.\-]{2,30})/g) ?? [];
+      for (const m of numbered) {
+        const name = m.replace(/^\d+[\.)]\s*/, "").trim();
+        if (name.length > 2 && name.length < 40) names.add(name);
+      }
+      // Match quoted names
+      const quoted = text.match(/["']([A-Z][a-zA-Z\s&'.\-]{2,30})["']/g) ?? [];
+      for (const m of quoted) {
+        const name = m.replace(/['"]/g, "").trim();
+        if (name.length > 2 && name.length < 40) names.add(name);
+      }
     }
+    return Array.from(names).slice(0, 20);
   }
-  return Array.from(names).slice(0, 20);
 }
 
 interface SerperResult {
@@ -176,7 +273,8 @@ async function queryPerplexityForArtists(
  */
 async function querySerperForArtists(
   query: string,
-  apiKey: string
+  apiKey: string,
+  geminiApiKey: string
 ): Promise<string[]> {
   try {
     const resp = await fetch("https://google.serper.dev/search", {
@@ -196,7 +294,7 @@ async function querySerperForArtists(
     }
 
     const data = await resp.json() as { organic: SerperResult[] };
-    return parseArtistsFromSerperResults(data.organic ?? []);
+    return extractArtistsFromSerperResults(data.organic ?? [], geminiApiKey);
   } catch (err) {
     console.warn("[artistDiscovery] Serper query failed:", err);
     return [];
@@ -265,6 +363,18 @@ export async function discoverArtists(
   config: ArtistDiscoveryConfig,
   targetCount = 50
 ): Promise<DiscoveredArtists> {
+  // -- Check cache --------------------------------------------
+  const cacheKey = buildDiscoveryCacheKey(intent);
+  const cached = await getFromCache(cacheKey);
+  if (cached) {
+    console.log(
+      `[artistDiscovery] Cache HIT (${cached.artists.length} artists, ` +
+      `strategy: ${cached.searchStrategy})`
+    );
+    return cached;
+  }
+  console.log("[artistDiscovery] Cache MISS -- querying APIs...");
+
   const prompt = buildArtistDiscoveryPrompt(intent, targetCount);
   let artists: DiscoveredArtist[] | null = null;
   let strategy = "";
@@ -291,7 +401,7 @@ export async function discoverArtists(
   // 3. Serper supplemental (if API key provided)
   if (config.serperApiKey) {
     const serperQuery = buildSerperQuery(intent);
-    const serperNames = await querySerperForArtists(serperQuery, config.serperApiKey);
+    const serperNames = await querySerperForArtists(serperQuery, config.serperApiKey, config.geminiApiKey);
     if (serperNames.length > 0) {
       artists = mergeSerperArtists(artists, serperNames, intent);
       strategy += "+serper";
@@ -302,7 +412,12 @@ export async function discoverArtists(
   // Sort by relevance score descending
   artists.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-  return { artists, searchStrategy: strategy };
+  const result: DiscoveredArtists = { artists, searchStrategy: strategy };
+
+  // Write to cache (fire-and-forget)
+  writeToCache(cacheKey, result, intent.description).catch(() => {});
+
+  return result;
 }
 
 /**

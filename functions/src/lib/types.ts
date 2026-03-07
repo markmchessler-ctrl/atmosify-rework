@@ -39,11 +39,15 @@ export interface TrackCandidate {
   FINAL_SCORE: number | null;
   artistRelevance: number;     // from ArtistDiscovery
   artistGenreContext: string;  // from ArtistDiscovery
+  overall_class?: string;      // quality classification from research engine
+  am_has_atmos?: boolean;      // pre-verified Atmos flag from research engine
+  enrichment_failed?: boolean; // true if AI enrichment failed for this track
   // Enriched fields (populated by TrackEnricher; may be from cache)
   atmos_mood?: string;
   atmos_energy?: number;   // 1-10
   atmos_vibe?: string[];
   atmos_tempo_estimate?: number; // BPM estimate
+  atmos_key_estimate?: string;   // Camelot notation e.g. "8B", "3A"
 }
 
 export interface PlaylistDraftTrack {
@@ -57,6 +61,9 @@ export interface PlaylistDraftTrack {
   FINAL_SCORE: number | null;
   atmos_mood?: string;
   atmos_energy?: number;
+  atmos_tempo_estimate?: number;
+  atmos_vibe?: string[];
+  atmos_key_estimate?: string;
   selectionRationale: string;
   position: number;
 }
@@ -79,6 +86,9 @@ export interface VerifiedTrack {
   atmosWarning: boolean;      // found on AM but no Atmos flag
   atmos_mood?: string;
   atmos_energy?: number;
+  atmos_tempo_estimate?: number;
+  atmos_vibe?: string[];
+  atmos_key_estimate?: string;
   FINAL_SCORE: number | null;
 }
 

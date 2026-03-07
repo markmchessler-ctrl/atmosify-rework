@@ -26,7 +26,7 @@ export interface VerifierResult {
 /**
  * Write verification failure timestamps back to Firestore.
  * Tracks that fail AM lookup get a cooldown period before being retried.
- * Fire-and-forget — don't block the response.
+ * Fire-and-forget -- don't block the response.
  */
 function writeVerificationFailures(db: Firestore, failedDocIds: string[]): void {
   if (failedDocIds.length === 0) return;
@@ -44,7 +44,7 @@ function writeVerificationFailures(db: Firestore, failedDocIds: string[]): void 
 
 /**
  * Write real Apple Music durations back to Firestore for future use.
- * Fire-and-forget — don't block the response.
+ * Fire-and-forget -- don't block the response.
  */
 function writeDurationsBack(
   db: Firestore,
@@ -101,7 +101,7 @@ export async function verifyPlaylist(
     const result = lookupResults.get(draftTrack.Apple_Music_ID);
 
     if (!result || !result.found) {
-      // Track not found on Apple Music — remove from playlist
+      // Track not found on Apple Music -- remove from playlist
       console.log(`[verifier] Removing "${draftTrack.track_Title}" by ${draftTrack.Artist} (not found on Apple Music)`);
       removedDocIds.push(draftTrack.docId);
       continue;
@@ -122,10 +122,12 @@ export async function verifyPlaylist(
     if (result.hasAtmos) {
       atmosVerifiedCount++;
     } else {
+      // Non-Atmos tracks are filtered out -- the 1.4x curator overshoot absorbs this drop
       atmosWarningCount++;
       console.log(
-        `[verifier] Warning: "${draftTrack.track_Title}" found on AM but no Atmos flag — keeping with warning badge`
+        `[verifier] Filtered: "${draftTrack.track_Title}" by ${draftTrack.Artist} -- found on AM but no Atmos flag`
       );
+      continue;
     }
 
     verifiedTracks.push({
@@ -141,6 +143,9 @@ export async function verifyPlaylist(
       atmosWarning: !result.hasAtmos,
       atmos_mood: draftTrack.atmos_mood,
       atmos_energy: draftTrack.atmos_energy,
+      atmos_tempo_estimate: draftTrack.atmos_tempo_estimate,
+      atmos_vibe: draftTrack.atmos_vibe,
+      atmos_key_estimate: draftTrack.atmos_key_estimate,
       FINAL_SCORE: draftTrack.FINAL_SCORE,
     });
   }

@@ -3,7 +3,7 @@
 // Vibrant music-club themed track list with Apple Music album art.
 
 import { useEffect, useState } from "react";
-import { getFunctions, httpsCallableFromURL } from "firebase/functions";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "../lib/firebase";
 import { SaveToAppleMusic } from "./SaveToAppleMusic";
 import type { AtmosPlaylist, VerifiedTrack } from "../../src/lib/types";
@@ -12,7 +12,7 @@ interface PlaylistResultsProps {
   playlist: AtmosPlaylist;
 }
 
-// ── Artwork fetching ──────────────────────────────────────────────────────────
+// -- Artwork fetching ----------------------------------------------------------
 
 async function fetchArtworkMap(
   trackIds: string[]
@@ -22,9 +22,8 @@ async function fetchArtworkMap(
   if (ids.length === 0) return map;
 
   const functions = getFunctions(app);
-  const getDevToken = httpsCallableFromURL<void, { token: string }>(
-    functions,
-    "https://getapplemusicdevtoken-or54ak2xqq-uc.a.run.app"
+  const getDevToken = httpsCallable<void, { token: string }>(
+    functions, "getAppleMusicDevToken"
   );
   const { data } = await getDevToken();
   const devToken = data.token;
@@ -53,7 +52,7 @@ async function fetchArtworkMap(
   return map;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 const GRADIENTS: [string, string][] = [
   ["#3b82f6", "#7c3aed"],
@@ -86,7 +85,7 @@ function formatTotalDuration(ms: number): string {
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// -- Sub-components ------------------------------------------------------------
 
 function AlbumArt({
   artist,
@@ -144,7 +143,7 @@ function AtmosBadge({
           boxShadow: "0 0 8px rgba(168, 85, 247, 0.2)",
         }}
       >
-        ✓ Atmos
+        {"\u2713"} Atmos
       </span>
     );
   }
@@ -214,7 +213,7 @@ function TrackCard({
             }}
           >
             {track.Artist}
-            {track.album && ` · ${track.album}`}
+            {track.album && ` \u00B7 ${track.album}`}
           </span>
         </div>
       </div>
@@ -237,7 +236,7 @@ function TrackCard({
   );
 }
 
-// ── Share Button ──────────────────────────────────────────────────────────────
+// -- Share Button --------------------------------------------------------------
 
 function ShareButton({ playlist }: { playlist: AtmosPlaylist }) {
   const [status, setStatus] = useState<"idle" | "sharing" | "copied" | "error">("idle");
@@ -246,10 +245,10 @@ function ShareButton({ playlist }: { playlist: AtmosPlaylist }) {
     setStatus("sharing");
     try {
       const functions = getFunctions(app);
-      const sharePlaylist = httpsCallableFromURL<
+      const sharePlaylist = httpsCallable<
         { playlist: AtmosPlaylist },
         { shareId: string }
-      >(functions, "https://shareplaylist-or54ak2xqq-uc.a.run.app");
+      >(functions, "sharePlaylist");
 
       const { data } = await sharePlaylist({ playlist });
       const shareUrl = `${window.location.origin}/share?id=${data.shareId}`;
@@ -303,12 +302,12 @@ function ShareButton({ playlist }: { playlist: AtmosPlaylist }) {
       )}
       {status === "sharing" && "Sharing..."}
       {status === "copied" && "Link copied!"}
-      {status === "error" && "Failed — try again"}
+      {status === "error" && "Failed -- try again"}
     </button>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// -- Main component ------------------------------------------------------------
 
 export function PlaylistResults({ playlist }: PlaylistResultsProps) {
   const [artworkMap, setArtworkMap] = useState<Map<string, string>>(new Map());
@@ -364,10 +363,10 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
             color: "var(--color-text-tertiary)",
           }}
         >
-          <span>🎵 {playlist.tracks.length} tracks</span>
-          <span style={{ color: "var(--color-border)" }}>·</span>
-          <span>⏱ {formatTotalDuration(playlist.totalDurationMs)}</span>
-          <span style={{ color: "var(--color-border)" }}>·</span>
+          <span>{"\u{1F3B5}"} {playlist.tracks.length} tracks</span>
+          <span style={{ color: "var(--color-border)" }}>{"\u00B7"}</span>
+          <span>{"\u{23F1}"} {formatTotalDuration(playlist.totalDurationMs)}</span>
+          <span style={{ color: "var(--color-border)" }}>{"\u00B7"}</span>
           <span
             style={{ color: "var(--color-accent-bright)" }}
           >
@@ -375,7 +374,7 @@ export function PlaylistResults({ playlist }: PlaylistResultsProps) {
           </span>
           {playlist.atmosWarningCount > 0 && (
             <>
-              <span style={{ color: "var(--color-border)" }}>·</span>
+              <span style={{ color: "var(--color-border)" }}>{"\u00B7"}</span>
               <span style={{ color: "var(--color-atmos-warning)" }}>
                 {playlist.atmosWarningCount} unverified
               </span>

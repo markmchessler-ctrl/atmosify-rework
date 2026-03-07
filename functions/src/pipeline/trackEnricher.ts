@@ -10,7 +10,7 @@ import type { Firestore, Timestamp } from "firebase-admin/firestore";
 import type { TrackCandidate, PlaylistIntent } from "../lib/types.js";
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 const CACHE_TTL_DAYS = 30;
 const BATCH_SIZE = 12; // tracks per Perplexity/Gemini call
 
@@ -20,10 +20,12 @@ interface EnrichmentConfig {
 }
 
 interface TrackEnrichment {
+  index: number;    // position in the batch
   mood: string;
   energy: number;   // 1-10
   vibe: string[];   // e.g. ["atmospheric", "hypnotic", "bass-heavy"]
   tempoEstimate: number; // BPM estimate
+  keyEstimate: string | null; // Camelot notation e.g. "8B", "3A"
 }
 
 interface FirestoreEnrichmentFields {
@@ -31,6 +33,7 @@ interface FirestoreEnrichmentFields {
   atmos_energy?: number;
   atmos_vibe?: string[];
   atmos_tempo_estimate?: number;
+  atmos_key_estimate?: string;
   atmos_enriched_at?: Timestamp;
   atmos_enriched_by?: string;
 }
@@ -55,6 +58,10 @@ function buildEnrichmentPrompt(
 - energy: integer 1-10 (1=ambient/soft, 10=intense/aggressive)
 - vibe: 2-4 short descriptors (e.g., ["atmospheric", "hypnotic", "late-night"])
 - tempoEstimate: BPM estimate as integer
+- keyEstimate: Camelot wheel notation (1A-12A for minor keys, 1B-12B for major keys).
+  Mapping: C/Am=8A/8B, G/Em=9A/9B, D/Bm=10A/10B, A/F#m=11A/11B, E/C#m=12A/12B,
+  B/G#m=1A/1B, F#/D#m=2A/2B, Db/Bbm=3A/3B, Ab/Fm=4A/4B, Eb/Cm=5A/5B,
+  Bb/Gm=6A/6B, F/Dm=7A/7B. Use null if truly unknown.
 
 Context: The listener wants ${intent.description}
 Desired mood: ${intent.moods.join(", ")}
@@ -65,7 +72,7 @@ ${trackList}
 
 Return ONLY valid JSON, no markdown:
 [
-  {"index": 0, "mood": "...", "energy": 5, "vibe": ["...", "..."], "tempoEstimate": 95},
+  {"index": 0, "mood": "...", "energy": 5, "vibe": ["...", "..."], "tempoEstimate": 95, "keyEstimate": "8B"},
   ...
 ]`;
 }
@@ -150,6 +157,7 @@ async function applyEnrichment(
     track.atmos_energy = enrichment.energy;
     track.atmos_vibe = enrichment.vibe;
     track.atmos_tempo_estimate = enrichment.tempoEstimate;
+    if (enrichment.keyEstimate) track.atmos_key_estimate = enrichment.keyEstimate;
 
     // Write to Firestore cache
     const fields: FirestoreEnrichmentFields = {
@@ -160,6 +168,7 @@ async function applyEnrichment(
       atmos_enriched_at: now,
       atmos_enriched_by: source,
     };
+    if (enrichment.keyEstimate) fields.atmos_key_estimate = enrichment.keyEstimate;
 
     writes.push(
       db.collection("tracks").doc(track.docId).set(fields, { merge: true })
@@ -215,9 +224,8 @@ export async function enrichTracks(
 
   for (let i = 0; i < needsEnrichment.length; i += FRESHNESS_BATCH) {
     const batch = needsEnrichment.slice(i, i + FRESHNESS_BATCH);
-    const snaps = await Promise.all(
-      batch.map(t => db.collection("tracks").doc(t.docId).get())
-    );
+    const refs = batch.map(t => db.collection("tracks").doc(t.docId));
+    const snaps = await db.getAll(...refs);
 
     for (let j = 0; j < batch.length; j++) {
       const track = batch[j];
@@ -230,6 +238,7 @@ export async function enrichTracks(
         track.atmos_energy = data.atmos_energy;
         track.atmos_vibe = data.atmos_vibe;
         track.atmos_tempo_estimate = data.atmos_tempo_estimate;
+        if (data.atmos_key_estimate) track.atmos_key_estimate = data.atmos_key_estimate;
         cacheHits++;
       } else {
         trulyStale.push(track);
@@ -249,42 +258,70 @@ export async function enrichTracks(
     byArtist.set(track.Artist, existing);
   }
 
-  // Process each artist's tracks in batches
+  // -- Concurrent batch executor ---------------------------------
+  const CONCURRENCY = 4; // max simultaneous Gemini/Perplexity calls
+
+  interface EnrichmentJob {
+    artist: string;
+    batchTracks: TrackCandidate[];
+  }
+
+  const jobs: EnrichmentJob[] = [];
   for (const [artist, tracks] of byArtist) {
     for (let i = 0; i < tracks.length; i += BATCH_SIZE) {
-      const batchTracks = tracks.slice(i, i + BATCH_SIZE);
-      const batchInput = batchTracks.map((t, idx) => ({
+      jobs.push({ artist, batchTracks: tracks.slice(i, i + BATCH_SIZE) });
+    }
+  }
+
+  console.log(
+    `[trackEnricher] Processing ${jobs.length} batches (${Math.min(CONCURRENCY, jobs.length)} concurrent)`
+  );
+
+  let jobIndex = 0;
+
+  async function processNextJob(): Promise<void> {
+    while (jobIndex < jobs.length) {
+      const myIndex = jobIndex++;
+      const job = jobs[myIndex];
+
+      const batchInput = job.batchTracks.map((t, idx) => ({
         index: idx,
         title: t.track_Title,
         album: t.album,
       }));
 
-      const prompt = buildEnrichmentPrompt(artist, batchInput, intent);
+      const prompt = buildEnrichmentPrompt(job.artist, batchInput, intent);
 
-      // Try Perplexity first, then Gemini
-      let enrichments = await enrichWithPerplexity(prompt, config.perplexityApiKey);
-      let source = "perplexity";
+      // Gemini Flash is primary (classification task -- no web search needed)
+      // Perplexity is fallback only
+      let enrichments = await enrichWithGemini(prompt, config.geminiApiKey);
+      let source = "gemini";
 
       if (!enrichments || enrichments.length === 0) {
-        enrichments = await enrichWithGemini(prompt, config.geminiApiKey);
-        source = "gemini";
+        enrichments = await enrichWithPerplexity(prompt, config.perplexityApiKey);
+        source = "perplexity";
       }
 
       if (enrichments && enrichments.length > 0) {
-        await applyEnrichment(db, batchTracks, enrichments, source);
+        await applyEnrichment(db, job.batchTracks, enrichments, source);
         freshlyEnriched += enrichments.length;
       } else {
-        // Apply defaults for failed tracks so pipeline can continue
-        for (const track of batchTracks) {
+        for (const track of job.batchTracks) {
           track.atmos_mood = "unknown";
           track.atmos_energy = 5;
           track.atmos_vibe = [];
+          track.enrichment_failed = true;
         }
-        failed += batchTracks.length;
-        console.warn(`[trackEnricher] Enrichment failed for artist: ${artist}`);
+        failed += job.batchTracks.length;
+        console.warn(`[trackEnricher] Enrichment failed for artist: ${job.artist}`);
       }
     }
   }
+
+  // Launch N concurrent workers
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, () => processNextJob())
+  );
 
   console.log(
     `[trackEnricher] Done: ${cacheHits} cache hits, ${freshlyEnriched} enriched, ${failed} failed`

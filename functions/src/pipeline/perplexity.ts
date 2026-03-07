@@ -1,5 +1,5 @@
 // src/pipeline/perplexity.ts
-// Perplexity API wrapper — repurposed for artist discovery and track enrichment.
+// Perplexity API wrapper -- repurposed for artist discovery and track enrichment.
 // The original track-search logic has been removed.
 //
 // This module is kept as a thin wrapper so calling code doesn't need to know

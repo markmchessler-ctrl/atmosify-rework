@@ -1,15 +1,15 @@
 // src/pipeline/curator.ts
 // Stage 5: AI-powered playlist selection and sequencing.
 //
-// Gemini 2.5 Flash Lite takes the enriched candidate pool and selects
+// Gemini 3.1 Flash Lite takes the enriched candidate pool and selects
 // the best tracks, ordering them for mood arc and energy flow coherence.
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { TrackCandidate, PlaylistIntent, PlaylistDraft, PlaylistDraftTrack } from "../lib/types.js";
-import { getBpmRange } from "../lib/genreTaxonomy.js";
+import { getBpmRange, buildCrossPollinationContext, buildTaxonomyPromptContext } from "../lib/genreTaxonomy.js";
 import { extractJSON } from "./perplexity.js";
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 // Max candidates to send to Gemini in a single prompt (token budget)
 const MAX_CANDIDATES_IN_PROMPT = 200;
 // Default duration estimate for tracks without am_duration_ms (4 minutes)
@@ -33,10 +33,13 @@ function formatCandidateForPrompt(track: TrackCandidate): string {
   const mood = track.atmos_mood ? ` | mood:${track.atmos_mood}` : "";
   const energy = track.atmos_energy != null ? ` | energy:${track.atmos_energy}/10` : "";
   const vibe = track.atmos_vibe?.length ? ` | vibe:${track.atmos_vibe.join(",")}` : "";
+  const bpm = track.atmos_tempo_estimate ? ` | bpm:${track.atmos_tempo_estimate}` : "";
+  const key = track.atmos_key_estimate ? ` | key:${track.atmos_key_estimate}` : "";
   const relevance = ` | relevance:${track.artistRelevance.toFixed(2)}`;
   const genreCtx = ` | genre:${track.artistGenreContext}`;
+  const enrichFail = track.enrichment_failed ? " | ENRICHMENT_FAILED" : "";
 
-  return `${track.docId}|${track.Artist} - ${track.track_Title} (${track.album}) [${duration}${mood}${energy}${vibe}${score}${relevance}${genreCtx}]`;
+  return `${track.docId}|${track.Artist} - ${track.track_Title} (${track.album}) [${duration}${mood}${energy}${vibe}${bpm}${key}${score}${relevance}${genreCtx}${enrichFail}]`;
 }
 
 function buildCuratorPrompt(
@@ -54,8 +57,12 @@ function buildCuratorPrompt(
     .map((t) => formatCandidateForPrompt(t))
     .join("\n");
 
-  return `You are a world-class music curator and playlist editor. Your job is to select and sequence
-the best ${targetTrackCount} tracks from the candidate pool below to create an outstanding Dolby Atmos playlist.
+  const crossPollinationCtx = buildCrossPollinationContext(intent.genres, intent.subGenres);
+  const taxonomyCtx = buildTaxonomyPromptContext(intent.genres, intent.moods);
+
+  return `You are a world-class music curator and playlist editor specializing in Dolby Atmos spatial audio.
+Your job is to select and sequence the best ${targetTrackCount} tracks from the candidate pool below
+to create an outstanding Dolby Atmos playlist that showcases spatial audio production quality.
 
 LISTENER REQUEST:
 "${intent.description}"
@@ -69,25 +76,44 @@ ${intent.eraPreference ? `Era preference: ${intent.eraPreference}` : ""}
 ${intent.artistPreferences.length > 0 ? `Listener likes these artists specifically: ${intent.artistPreferences.join(", ")}` : ""}
 ${intent.excludeArtists.length > 0 ? `Exclude these artists: ${intent.excludeArtists.join(", ")}` : ""}
 
+${taxonomyCtx}
+${crossPollinationCtx}
+
 SELECTION CRITERIA (in order of priority):
-1. MOOD & VIBE ALIGNMENT — Track mood/vibe must match the listener's request
-2. ENERGY ARC — Build a coherent energy journey; avoid jarring energy jumps between consecutive tracks
-3. ARTIST DIVERSITY — Max 2-3 tracks per artist (unless listener specifically requested an artist)
-4. QUALITY SIGNAL — When equally suitable, prefer tracks with higher quality scores (score field)
-5. DURATION — Target ${Math.round(targetDurationMs / 60000)} minutes total (use ~4:00 estimate for tracks without duration)
-6. RELEVANCE — Prefer tracks from higher-relevance artists (relevance field closer to 1.0)
-7. BPM COHERENCE — Expected BPM range for this genre: ${bpmRange[0]}-${bpmRange[1]} BPM
-8. METADATA QUALITY — Tracks with mood 'unknown' have incomplete metadata — prefer tracks with known mood/energy data
-${intent.referenceQuality ? "9. QUALITY PRIORITY — This listener specifically wants reference-quality Dolby Atmos mixes. Prefer tracks by artists known for exceptional spatial audio production." : ""}
+1. STRICT GENRE ADHERENCE -- This is the MOST IMPORTANT rule. ONLY select tracks by artists who genuinely belong
+   to the requested genre(s): ${intent.genres.join(", ")}${intent.subGenres.length > 0 ? ` (sub-genres: ${intent.subGenres.join(", ")})` : ""}.
+   REJECT any track whose artist is NOT associated with these genres, even if the track's mood/energy fits.
+   For example: if the request is "Yacht Rock", do NOT include BTS, The Weeknd, Disclosure, or any K-pop/R&B/EDM artist.
+   When in doubt about genre fit, EXCLUDE the track. It is better to have fewer tracks than off-genre filler.
+2. DOLBY ATMOS QUALITY -- Every track in this playlist will be verified for Dolby Atmos availability.
+   Prefer tracks with higher quality scores (score field) as this correlates with better spatial audio mixes.
+   Tracks with score >= 7.0 are reference-quality Atmos candidates.
+3. MOOD & VIBE ALIGNMENT -- Track mood/vibe must match the listener's request
+4. ENERGY ARC -- Build a coherent energy journey; avoid jarring energy jumps (>3 points) between consecutive tracks
+5. CREATIVE GENRE PAIRING -- You may include 1-2 tracks from closely adjacent genres for variety,
+   but ONLY if the artist has clear stylistic overlap with the requested genre.
+   For example: a Yacht Rock playlist could include 1 soft AOR or West Coast jazz-fusion track, but NOT EDM or K-pop.
+6. ARTIST DIVERSITY -- Max 2-3 tracks per artist (unless listener specifically requested an artist)
+7. DURATION -- Target ${Math.round(targetDurationMs / 60000)} minutes total (use ~4:00 estimate for tracks without duration)
+8. RELEVANCE -- Prefer tracks from higher-relevance artists (relevance field closer to 1.0)
+9. BPM COHERENCE -- Expected BPM range for this genre: ${bpmRange[0]}-${bpmRange[1]} BPM.
+   Adjacent tracks should stay within 15-20 BPM of each other for smooth transitions.
+10. METADATA QUALITY -- Tracks marked ENRICHMENT_FAILED have no mood/energy data and should be deprioritized.
+   Tracks with mood 'unknown' should only fill gaps when better options are exhausted.
+${intent.referenceQuality ? "10. REFERENCE QUALITY -- This listener specifically wants reference-quality Dolby Atmos mixes. Strongly prefer tracks with score >= 8.0 by artists known for exceptional spatial audio production (e.g. artists working with top mix engineers like Steven Wilson, Bob Clearmountain, Giles Martin)." : ""}
 
 SEQUENCING RULES:
-- Start with a track that immediately establishes the mood
-- Middle section can include more energy variation
-- End with a satisfying resolution track
+- Start with a track that immediately establishes the mood (opener should be recognizable or impactful)
+- Cross-genre tracks work best in the middle third -- sandwich them between genre-core tracks
+- Build energy gradually -- middle section can explore more variation
+- End with a satisfying resolution track (slightly lower energy, strong mood callback)
 - Avoid putting two tracks with the same vibe descriptor back-to-back
-- Keep artist variety — don't cluster all tracks from one artist
+- Keep artist variety -- don't cluster all tracks from one artist together
+- BPM transitions: keep consecutive tracks within 15-20 BPM when possible
+- KEY COMPATIBILITY: When key data is available, prefer Camelot-compatible transitions
+  (same key, +/-1 number, or A/B switch). This creates harmonic flow between tracks.
 
-CANDIDATE POOL (format: docId|Artist - Title (Album) [duration|mood|energy|vibe|score|relevance|genre]):
+CANDIDATE POOL (format: docId|Artist - Title (Album) [duration|mood|energy|vibe|bpm|key|score|relevance|genre]):
 NOTE: Use ONLY the exact docId value (the part before the first pipe) in your response.
 ${trackList}
 
@@ -185,6 +211,9 @@ function ruleBasedSelection(
       FINAL_SCORE: track.FINAL_SCORE,
       atmos_mood: track.atmos_mood,
       atmos_energy: track.atmos_energy,
+      atmos_tempo_estimate: track.atmos_tempo_estimate,
+      atmos_vibe: track.atmos_vibe,
+      atmos_key_estimate: track.atmos_key_estimate,
       selectionRationale: "Rule-based selection (AI curation unavailable)",
       position: selected.length + 1,
     });
@@ -266,6 +295,9 @@ export async function curatePlaylist(
       FINAL_SCORE: candidate.FINAL_SCORE,
       atmos_mood: candidate.atmos_mood,
       atmos_energy: candidate.atmos_energy,
+      atmos_tempo_estimate: candidate.atmos_tempo_estimate,
+      atmos_vibe: candidate.atmos_vibe,
+      atmos_key_estimate: candidate.atmos_key_estimate,
       selectionRationale: sel.selectionRationale,
       position: sel.position,
     });

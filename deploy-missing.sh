@@ -1,3 +1,118 @@
+#!/bin/bash
+# Patch: 2 missing files that artistDiscovery.ts depends on
+
+echo "[1/2] Writing src/logic/perplexity.ts..."
+cat > src/logic/perplexity.ts << 'PATCH_EOF_1'
+// src/logic/perplexity.ts
+// Perplexity API wrapper — repurposed for artist discovery and track enrichment.
+// The original track-search logic has been removed.
+//
+// This module is kept as a thin wrapper so calling code doesn't need to know
+// the Perplexity API format details.
+
+const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
+
+export interface PerplexityConfig {
+  apiKey: string;
+  model?: string;    // default: "sonar"
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface PerplexityResponse {
+  content: string;
+  model: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+  };
+}
+
+/**
+ * Send a chat completion request to Perplexity.
+ * Returns the text content of the first choice, or null on error.
+ */
+export async function queryPerplexity(
+  prompt: string,
+  config: PerplexityConfig,
+  timeoutMs = 45_000
+): Promise<string | null> {
+  const body = {
+    model: config.model ?? "sonar",
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: config.maxTokens ?? 3000,
+    temperature: config.temperature ?? 0.2,
+  };
+
+  try {
+    const resp = await fetch(PERPLEXITY_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (!resp.ok) {
+      console.warn(`[perplexity] HTTP ${resp.status}: ${resp.statusText}`);
+      return null;
+    }
+
+    const data = await resp.json() as {
+      choices: Array<{ message: { content: string } }>;
+      model: string;
+    };
+
+    return data.choices?.[0]?.message?.content ?? null;
+  } catch (err) {
+    console.error("[perplexity] Request failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Extract a JSON array or object from a Perplexity response string.
+ * Uses bracket-depth tracking to find the correct boundaries, avoiding
+ * the greedy-regex problem where citation footnotes break parsing.
+ */
+export function extractJSON<T>(content: string): T | null {
+  // 1. Try markdown code fences first (most reliable)
+  const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    try { return JSON.parse(fenceMatch[1]) as T; } catch { /* fall through */ }
+  }
+
+  // 2. Find JSON using bracket-depth tracking (handles citations after JSON)
+  for (const [open, close] of [["{", "}"], ["[", "]"]] as const) {
+    const start = content.indexOf(open);
+    if (start === -1) continue;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < content.length; i++) {
+      const ch = content[i];
+      if (escape) { escape = false; continue; }
+      if (ch === "\\" && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === open) depth++;
+      else if (ch === close) {
+        depth--;
+        if (depth === 0) {
+          try { return JSON.parse(content.slice(start, i + 1)) as T; } catch { break; }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+PATCH_EOF_1
+
+echo "[2/2] Writing src/lib/referenceAtmos.ts..."
+cat > src/lib/referenceAtmos.ts << 'PATCH_EOF_2'
 // src/lib/referenceAtmos.ts
 // Static reference-quality Dolby Atmos data module.
 //
@@ -8,7 +123,7 @@
 //
 // These lists are a STARTING POINT for reference-quality playlists, not a limiter.
 
-// --- 1. REFERENCE ARTISTS (ranked by Atmos production quality) --------------
+// ─── 1. REFERENCE ARTISTS (ranked by Atmos production quality) ──────────────
 
 export interface ReferenceArtist {
   rank: number;
@@ -45,7 +160,7 @@ export const REFERENCE_ARTISTS: ReferenceArtist[] = [
   { rank: 25, name: "King Crimson", genres: ["Rock", "Progressive Rock"], knownForAtmos: "Steven Wilson-supervised Atmos mixes reveal extraordinary detail in complex compositions" },
 ];
 
-// --- 2. REFERENCE ENGINEERS (ranked by Atmos mixing excellence) --------------
+// ─── 2. REFERENCE ENGINEERS (ranked by Atmos mixing excellence) ──────────────
 
 export interface ReferenceEngineer {
   rank: number;
@@ -81,7 +196,7 @@ export const REFERENCE_ENGINEERS: ReferenceEngineer[] = [
   { rank: 25, name: "Jaycen Joshua", knownForAtmos: "Elite hip-hop/pop mixer; Atmos mixes for major label releases" },
 ];
 
-// --- 3. QUALITY KEYWORDS (trigger reference-quality mode) --------------------
+// ─── 3. QUALITY KEYWORDS (trigger reference-quality mode) ────────────────────
 
 export const QUALITY_KEYWORDS: string[] = [
   "the best",
@@ -111,7 +226,7 @@ export const QUALITY_KEYWORDS: string[] = [
   "immersive showcase",
 ];
 
-// --- 4. UTILITY FUNCTIONS ----------------------------------------------------
+// ─── 4. UTILITY FUNCTIONS ────────────────────────────────────────────────────
 
 /**
  * Detect whether the user's prompt signals a desire for reference-quality Atmos.
@@ -158,7 +273,7 @@ export function buildReferencePromptFragment(genres: string[]): string {
 
   return `REFERENCE-QUALITY ATMOS CONTEXT:
 The listener specifically wants reference-quality Dolby Atmos music. Use these as a
-starting point -- include artists from this list AND discover additional artists who
+starting point — include artists from this list AND discover additional artists who
 match their production quality standards. This is a STARTING POINT, not a limiter.
 
 REFERENCE ARTISTS (proven exceptional Atmos mixes):
@@ -173,3 +288,8 @@ The reference list should guide your quality threshold, not restrict your choice
 
 `;
 }
+PATCH_EOF_2
+
+echo ""
+echo "=== 2 missing files written ==="
+echo "Now run: npm run build:functions"

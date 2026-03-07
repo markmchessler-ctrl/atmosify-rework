@@ -1,5 +1,5 @@
 // src/pipeline/genreMap.ts
-// Genre adjacency map — now data-driven from the NotebookLM genre taxonomy.
+// Genre adjacency map -- now data-driven from the NotebookLM genre taxonomy.
 // REPLACES the previous hand-coded adjacency map.
 //
 // Use getAdjacentGenres() to find related genres for broadening a search
@@ -11,7 +11,7 @@ import { MUSICMAP_CLUSTERS, GENRE_FAMILIES } from "../lib/genreTaxonomy.js";
 
 /**
  * Get all genres within the same Musicmap cluster as the given genre.
- * More precise than getAdjacentGenres — uses cluster membership.
+ * More precise than getAdjacentGenres -- uses cluster membership.
  */
 export function getClusterGenres(genre: string): string[] {
   const lower = genre.toLowerCase();

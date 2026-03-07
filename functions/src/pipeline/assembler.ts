@@ -16,6 +16,7 @@ import type {
 } from "../lib/types.js";
 import { curatePlaylist } from "./curator.js";
 import { verifyPlaylist } from "./verifier.js";
+import { sequenceTracks } from "./sequencer.js";
 
 const GAP_FILL_THRESHOLD = 0.60; // fill if < 60% of target track count (lowered to absorb verification drops)
 const DEFAULT_DURATION_MS = 240_000;
@@ -32,8 +33,11 @@ interface AssemblerInput {
   draft: PlaylistDraft;
 }
 
+const GAP_FILL_MIN_SCORE = 4.0; // Minimum quality for gap-fill tracks
+
 /**
  * Attempt gap-fill by re-curating from unused candidates.
+ * Applies quality controls: filters by FINAL_SCORE and deprioritizes enrichment failures.
  */
 async function gapFillFromPool(
   db: Firestore,
@@ -43,13 +47,33 @@ async function gapFillFromPool(
 ): Promise<VerifiedTrack[]> {
   if (input.unusedCandidates.length === 0) return [];
 
+  // Quality gate: filter and sort unused candidates before gap-filling
+  const qualifiedCandidates = input.unusedCandidates
+    .filter(c => {
+      // Exclude very low quality tracks
+      if (c.FINAL_SCORE != null && c.FINAL_SCORE < GAP_FILL_MIN_SCORE) return false;
+      // Exclude tracks with failed enrichment (no mood/energy data)
+      if (c.enrichment_failed) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by FINAL_SCORE descending, then relevance
+      const scoreA = a.FINAL_SCORE ?? 0;
+      const scoreB = b.FINAL_SCORE ?? 0;
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return b.artistRelevance - a.artistRelevance;
+    });
+
   console.log(
-    `[assembler] Gap-filling ${needed} tracks from ${input.unusedCandidates.length} unused candidates`
+    `[assembler] Gap-filling ${needed} tracks from ${qualifiedCandidates.length} qualified candidates ` +
+    `(${input.unusedCandidates.length - qualifiedCandidates.length} filtered by quality gate)`
   );
 
-  // Build a mini-draft from unused pool
+  if (qualifiedCandidates.length === 0) return [];
+
+  // Build a mini-draft from qualified pool
   const fillDraft: PlaylistDraft = {
-    tracks: input.unusedCandidates.slice(0, needed * 3).map((c, i) => ({
+    tracks: qualifiedCandidates.slice(0, needed * 3).map((c, i) => ({
       docId: c.docId,
       Artist: c.Artist,
       track_Title: c.track_Title,
@@ -60,6 +84,9 @@ async function gapFillFromPool(
       FINAL_SCORE: c.FINAL_SCORE,
       atmos_mood: c.atmos_mood,
       atmos_energy: c.atmos_energy,
+      atmos_tempo_estimate: c.atmos_tempo_estimate,
+      atmos_vibe: c.atmos_vibe,
+      atmos_key_estimate: c.atmos_key_estimate,
       selectionRationale: "Gap fill",
       position: i + 1,
     })),
@@ -79,8 +106,8 @@ async function gapFillFromPool(
 function generateTitle(intent: PlaylistIntent): string {
   const genreStr = intent.subGenres[0] ?? intent.genres[0] ?? "Atmos";
   const moodStr = intent.moods[0] ?? "Curated";
-  const eraStr = intent.eraPreference ? ` · ${intent.eraPreference}` : "";
-  return `${moodStr.charAt(0).toUpperCase() + moodStr.slice(1)} ${genreStr}${eraStr} — Dolby Atmos`;
+  const eraStr = intent.eraPreference ? ` \u00B7 ${intent.eraPreference}` : "";
+  return `${moodStr.charAt(0).toUpperCase() + moodStr.slice(1)} ${genreStr}${eraStr} \u2014 Dolby Atmos`;
 }
 
 /**
@@ -90,7 +117,7 @@ function generateDescription(intent: PlaylistIntent, trackCount: number): string
   const duration = Math.round((trackCount * DEFAULT_DURATION_MS) / 60000);
   const genreStr = intent.genres.join(" / ");
   const moodStr = intent.moods.join(", ");
-  return `${trackCount} Dolby Atmos tracks · ~${duration} min · ${genreStr} · ${moodStr}`;
+  return `${trackCount} Dolby Atmos tracks \u00B7 ~${duration} min \u00B7 ${genreStr} \u00B7 ${moodStr}`;
 }
 
 /**
@@ -138,7 +165,7 @@ export async function assemblePlaylist(
   if (verifiedTracks.length < minRequired) {
     const needed = targetCount - verifiedTracks.length;
     console.log(
-      `[assembler] ${verifiedTracks.length}/${targetCount} tracks — below threshold. Gap-filling ${needed}...`
+      `[assembler] ${verifiedTracks.length}/${targetCount} tracks -- below threshold. Gap-filling ${needed}...`
     );
 
     const fillTracks = await gapFillFromPool(
@@ -155,7 +182,18 @@ export async function assemblePlaylist(
   }
 
   // Enforce artist diversity in final list
-  const finalTracks = enforceArtistDiversity(verifiedTracks, input.intent, targetCount);
+  const diverseTracks = enforceArtistDiversity(verifiedTracks, input.intent, targetCount);
+
+  // Sequence tracks for smooth BPM/key/energy/vibe flow
+  const sequencerResult = sequenceTracks(diverseTracks, input.intent);
+  const finalTracks = sequencerResult.tracks;
+
+  if (sequencerResult.sets.length > 1) {
+    console.log(
+      `[assembler] Sequencer created ${sequencerResult.sets.length} sets: ` +
+      sequencerResult.sets.map(s => `${s.label} (${s.endIndex - s.startIndex + 1} tracks)`).join(", ")
+    );
+  }
 
   // Calculate totals
   const totalDurationMs = finalTracks.reduce(

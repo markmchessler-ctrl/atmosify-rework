@@ -1,5 +1,5 @@
 // src/pipeline/clarify.ts
-// Stage 1: Gatekeeper — parse user intent into structured PlaylistIntent.
+// Stage 1: Gatekeeper -- parse user intent into structured PlaylistIntent.
 //
 // If the request is too vague, return a clarification question.
 // Maps freeform language to canonical genre/mood terms from the taxonomy.
@@ -10,7 +10,7 @@ import { buildTaxonomyPromptContext } from "../lib/genreTaxonomy.js";
 import { detectQualityIntent } from "../lib/referenceAtmos.js";
 import type { PlaylistIntent, ClarifyResult } from "../lib/types.js";
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
 interface ClarifyConfig {
   geminiApiKey: string;
@@ -45,7 +45,7 @@ USER REQUEST:
 
 TASK:
 1. ALMOST NEVER ask for clarification. Only set needsClarification: true for truly
-   meaningless, zero-signal prompts like "music", "songs", "play something" —
+   meaningless, zero-signal prompts like "music", "songs", "play something" --
    prompts of 1-3 generic words with absolutely no genre, mood, vibe, or activity signal.
 
 2. These prompts MUST NOT trigger clarification (extract intent from them):
@@ -58,12 +58,12 @@ TASK:
    - "90s rock" -> genres: Rock, eraPreference: 1990s
    - "the best Atmos music" -> genres: (broad), moods: (varied)
 
-3. If ANY genre, mood, vibe, activity, era, or artist is mentioned, EXTRACT IT — do not clarify.
+3. If ANY genre, mood, vibe, activity, era, or artist is mentioned, EXTRACT IT -- do not clarify.
 4. Otherwise, extract structured intent.
 
 For genres and subGenres, map to canonical taxonomy names where possible, but common genres
 like R&B, Soul, Hip-Hop, Jazz, Classical, Country, Pop, Rock, Metal, Funk, Gospel, Latin,
-Reggae, Blues, Folk, Punk, etc. are always valid — do not ask for clarification on them.
+Reggae, Blues, Folk, Punk, etc. are always valid -- do not ask for clarification on them.
 For moods, use descriptive words like: chill, energetic, melancholic, euphoric, romantic,
   introspective, uplifting, dark, aggressive, dreamy, sensual, nostalgic, hypnotic, etc.
 For vibeKeywords, use sonic descriptors: warm, cold, atmospheric, driving, lo-fi, hi-fi,
@@ -105,7 +105,7 @@ export async function clarifyIntent(
     return {
       needsClarification: true,
       clarificationQuestion:
-        "What kind of music are you in the mood for? Tell me a genre, mood, or vibe — " +
+        "What kind of music are you in the mood for? Tell me a genre, mood, or vibe -- " +
         'like "late-night R&B", "energetic deep house", or "melancholic indie rock".',
     };
   }
@@ -131,9 +131,11 @@ export async function clarifyIntent(
     };
 
     // Word-count safety rail: prompts with 5+ words should NEVER trigger clarification.
-    // Gemini can be over-cautious — override when the prompt clearly has signal.
-    const wordCount = userPrompt.trim().split(/\s+/).length;
-    if (parsed.needsClarification && wordCount >= 5 && parsed.intent) {
+    // Gemini can be over-cautious -- override when the prompt clearly has signal.
+    const words = userPrompt.trim().split(/\s+/);
+    const wordCount = words.length;
+    const hasNonGenericWord = words.some(w => !VAGUE_REQUEST_INDICATORS.includes(w.toLowerCase()));
+    if (parsed.needsClarification && wordCount >= 8 && hasNonGenericWord && parsed.intent) {
       console.log(`[clarify] Overriding Gemini clarification (prompt has ${wordCount} words)`);
       parsed.needsClarification = false;
     }
@@ -166,23 +168,13 @@ export async function clarifyIntent(
     return { needsClarification: false, intent };
   } catch (err) {
     console.error("[clarify] Gemini error:", err);
-    // If Gemini fails, do a best-effort parse to keep the pipeline moving
+    // Gemini is down -- ask user to clarify rather than proceeding with empty intent
     return {
-      needsClarification: false,
-      intent: {
-        description: userPrompt,
-        genres: [],
-        subGenres: [],
-        moods: [],
-        vibeKeywords: [],
-        energyRange: [4, 7],
-        targetDurationMinutes: 60,
-        targetTrackCount: null,
-        artistPreferences: [],
-        excludeArtists: [],
-        eraPreference: null,
-        referenceQuality: detectQualityIntent(userPrompt),
-      },
+      needsClarification: true,
+      clarificationQuestion:
+        "I'm having trouble understanding your request right now. " +
+        'Could you try again with more detail? For example: "chill late-night neo-soul" ' +
+        'or "high-energy trap for working out".',
     };
   }
 }

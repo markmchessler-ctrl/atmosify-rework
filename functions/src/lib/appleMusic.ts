@@ -39,7 +39,7 @@ export function generateAppleMusicToken(
   // Normalize escaped \n sequences that come from single-line secret storage.
   // Handle both literal \n (two chars) and already-real newlines.
   const pem = privateKey
-    .replace(/\\n/g, "\n")   // literal \n → real newline
+    .replace(/\\n/g, "\n")   // literal \n -> real newline
     .trim();                  // remove any leading/trailing whitespace
   return jwt.sign({}, pem, {
     algorithm: "ES256",
@@ -52,7 +52,7 @@ export function generateAppleMusicToken(
 /**
  * Batch lookup Apple Music tracks.
  * Processes up to 300 IDs per API call.
- * Returns a map of Apple Music ID → lookup result.
+ * Returns a map of Apple Music ID -> lookup result.
  */
 export async function batchLookupAppleTracks(
   ids: string[],
@@ -60,7 +60,8 @@ export async function batchLookupAppleTracks(
   storefront = "us"
 ): Promise<Map<string, AppleLookupResult>> {
   const results = new Map<string, AppleLookupResult>();
-  const BATCH_SIZE = 300;
+  const BATCH_SIZE = 50; // Apple Music best practice: 25-50 IDs per request
+  const MAX_RETRIES = 2;
 
   const notFound = (id: string): AppleLookupResult => ({
     id,
@@ -74,50 +75,64 @@ export async function batchLookupAppleTracks(
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     const batch = ids.slice(i, i + BATCH_SIZE);
     const idsParam = encodeURIComponent(batch.join(","));
+    let success = false;
 
-    try {
-      const resp = await fetch(
-        `https://api.music.apple.com/v1/catalog/${storefront}/songs?ids=${idsParam}&extend=audioVariants`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(15000),
+    for (let attempt = 0; attempt < MAX_RETRIES && !success; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Exponential backoff: 500ms, 1500ms
+          await new Promise(r => setTimeout(r, 500 * Math.pow(3, attempt - 1)));
+          console.log(`[appleMusic] Retry ${attempt} for batch at offset ${i}`);
         }
-      );
 
-      if (!resp.ok) {
-        console.warn(`[appleMusic] Batch lookup failed: HTTP ${resp.status}`);
-        batch.forEach(id => results.set(id, notFound(id)));
-        continue;
-      }
+        const resp = await fetch(
+          `https://api.music.apple.com/v1/catalog/${storefront}/songs?ids=${idsParam}&extend=audioVariants`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(15000),
+          }
+        );
 
-      const data = await resp.json() as {
-        data: Array<{ id: string; attributes: AppleTrackAttrs }>;
-      };
+        if (!resp.ok) {
+          console.warn(`[appleMusic] Batch lookup failed: HTTP ${resp.status} (attempt ${attempt + 1})`);
+          if (attempt === MAX_RETRIES - 1) {
+            batch.forEach(id => results.set(id, notFound(id)));
+          }
+          continue;
+        }
 
-      const foundIds = new Set<string>();
-      for (const item of (data.data ?? [])) {
-        const attrs = item.attributes;
-        const hasAtmos = (attrs.audioVariants ?? []).includes("dolby-atmos");
-        results.set(item.id, {
-          id: item.id,
-          found: true,
-          hasAtmos,
-          durationMs: attrs.durationInMillis ?? null,
-          url: attrs.url ?? null,
-          attrs,
-        });
-        foundIds.add(item.id);
-      }
+        const data = await resp.json() as {
+          data: Array<{ id: string; attributes: AppleTrackAttrs }>;
+        };
 
-      // Mark tracks not returned by Apple Music
-      for (const id of batch) {
-        if (!foundIds.has(id)) {
-          results.set(id, notFound(id));
+        const foundIds = new Set<string>();
+        for (const item of (data.data ?? [])) {
+          const attrs = item.attributes;
+          const hasAtmos = (attrs.audioVariants ?? []).includes("dolby-atmos");
+          results.set(item.id, {
+            id: item.id,
+            found: true,
+            hasAtmos,
+            durationMs: attrs.durationInMillis ?? null,
+            url: attrs.url ?? null,
+            attrs,
+          });
+          foundIds.add(item.id);
+        }
+
+        // Mark tracks not returned by Apple Music
+        for (const id of batch) {
+          if (!foundIds.has(id)) {
+            results.set(id, notFound(id));
+          }
+        }
+        success = true;
+      } catch (err) {
+        console.error(`[appleMusic] Batch lookup error (attempt ${attempt + 1}):`, err);
+        if (attempt === MAX_RETRIES - 1) {
+          batch.forEach(id => results.set(id, notFound(id)));
         }
       }
-    } catch (err) {
-      console.error(`[appleMusic] Batch lookup error:`, err);
-      batch.forEach(id => results.set(id, notFound(id)));
     }
 
     // Respect Apple Music rate limits between batches

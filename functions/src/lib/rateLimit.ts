@@ -40,6 +40,8 @@ export async function checkRateLimit(
     const timestamps = (data?.timestamps ?? []).filter((ts) => ts > windowStart);
 
     if (timestamps.length >= config.maxRequests) {
+      // Write back pruned array to keep Firestore doc clean
+      txn.set(docRef, { timestamps, updatedAt: now });
       const oldestInWindow = Math.min(...timestamps);
       const retryAfterMs = oldestInWindow + config.windowMs - now;
       return {
@@ -49,7 +51,7 @@ export async function checkRateLimit(
       };
     }
 
-    // Allowed — record this request
+    // Allowed -- record this request
     timestamps.push(now);
     txn.set(docRef, { timestamps, updatedAt: now }, { merge: true });
 
@@ -80,7 +82,7 @@ export function extractIp(request: { rawRequest?: { ip?: string; headers?: Recor
   return "unknown";
 }
 
-// ── Pre-defined rate limit configs ───────────────────────────────────────────
+// -- Pre-defined rate limit configs -------------------------------------------
 
 /** runAtmosify: 10 requests per hour per IP */
 export const ATMOSIFY_RATE_LIMIT: RateLimitConfig = {

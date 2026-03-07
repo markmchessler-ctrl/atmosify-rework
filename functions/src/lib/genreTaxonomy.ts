@@ -7,7 +7,7 @@
 //
 // Rebuild manually when taxonomy needs updating by querying the NotebookLM notebook.
 
-// ─── 1. GENRE HIERARCHY (11 families) ─────────────────────────────────────────
+// --- 1. GENRE HIERARCHY (11 families) -----------------------------------------
 
 export interface GenreFamily {
   name: string;
@@ -25,7 +25,7 @@ export const GENRE_FAMILIES: GenreFamily[] = [
   },
   {
     name: "Rock",
-    subGenres: ["Classic Rock", "Hard Rock", "Metal", "Alternative Rock", "Indie Rock", "Psychedelic Rock", "Punk Rock", "Progressive Rock", "Post-Rock", "Shoegaze", "Grunge", "Garage Rock"],
+    subGenres: ["Classic Rock", "Hard Rock", "Metal", "Alternative Rock", "Indie Rock", "Psychedelic Rock", "Punk Rock", "Progressive Rock", "Post-Rock", "Shoegaze", "Grunge", "Garage Rock", "Yacht Rock", "AOR", "Soft Rock", "Southern Rock", "Blues Rock"],
     musicFactor: ["Intense", "Campestral"],
     bpmRange: [110, 160],
   },
@@ -59,7 +59,7 @@ export const GENRE_FAMILIES: GenreFamily[] = [
   },
   {
     name: "Latin",
-    subGenres: ["Urbano Latino", "Reggaeton", "Música Mexicana", "Bachata", "Salsa", "Cumbia", "Latin Pop", "Latin Jazz", "Bossa Nova", "Flamenco", "Bolero"],
+    subGenres: ["Urbano Latino", "Reggaeton", "Musica Mexicana", "Bachata", "Salsa", "Cumbia", "Latin Pop", "Latin Jazz", "Bossa Nova", "Flamenco", "Bolero"],
     musicFactor: ["Urban", "Mellow"],
     bpmRange: [80, 130],
   },
@@ -95,7 +95,7 @@ export const GENRE_FAMILIES: GenreFamily[] = [
   },
 ];
 
-// ─── 2. MUSICMAP MACRO CLUSTERS (genre adjacency for smooth transitions) ─────
+// --- 2. MUSICMAP MACRO CLUSTERS (genre adjacency for smooth transitions) -----
 
 export interface MusicmapCluster {
   name: string;
@@ -107,7 +107,7 @@ export const MUSICMAP_CLUSTERS: MusicmapCluster[] = [
   {
     name: "Blue Note",
     genres: ["Gospel", "Blues", "Jazz", "Soul", "R&B", "Funk"],
-    description: "African-American roots music lineage — emotionally rich, improvisational",
+    description: "African-American roots music lineage -- emotionally rich, improvisational",
   },
   {
     name: "Rock",
@@ -117,12 +117,12 @@ export const MUSICMAP_CLUSTERS: MusicmapCluster[] = [
   {
     name: "Electronic Dance Music",
     genres: ["Breakbeat", "Jungle", "Drum & Bass", "Hardcore Techno", "Techno", "House", "Deep House", "Tech House", "Trance", "Ambient", "Downtempo"],
-    description: "Electronic lineage — from early breakbeats through club music to ambient",
+    description: "Electronic lineage -- from early breakbeats through club music to ambient",
   },
   {
     name: "Hip-Hop",
     genres: ["Old School Hip-Hop", "Boom Bap", "East Coast", "West Coast", "Southern", "Trap", "Drill", "Cloud Rap", "Experimental Hip-Hop"],
-    description: "Urban poetry and production — percussion-forward, lyrically driven",
+    description: "Urban poetry and production -- percussion-forward, lyrically driven",
   },
   {
     name: "Pop",
@@ -132,22 +132,22 @@ export const MUSICMAP_CLUSTERS: MusicmapCluster[] = [
   {
     name: "Reggae",
     genres: ["Ska", "Rocksteady", "Roots Reggae", "Dancehall", "Dub", "Soca"],
-    description: "Caribbean rhythmic tradition — offbeat emphasis, spiritual/social themes",
+    description: "Caribbean rhythmic tradition -- offbeat emphasis, spiritual/social themes",
   },
   {
     name: "Country/Folk",
     genres: ["Bluegrass", "Old-Time", "Folk", "Country", "Americana", "Alt-Country", "Singer-Songwriter"],
-    description: "Roots acoustic tradition — storytelling, acoustic instrumentation",
+    description: "Roots acoustic tradition -- storytelling, acoustic instrumentation",
   },
   {
     name: "Latin",
     genres: ["Bossa Nova", "Samba", "Salsa", "Cumbia", "Bachata", "Reggaeton", "Urbano Latino", "Latin Pop"],
-    description: "Latin American rhythmic traditions — syncopated, dance-oriented",
+    description: "Latin American rhythmic traditions -- syncopated, dance-oriented",
   },
   {
     name: "Industrial/Gothic",
     genres: ["Industrial", "EBM", "Gothic Rock", "Darkwave", "Post-Industrial", "Noise"],
-    description: "Dark, abrasive, mechanistic — subversive and boundary-pushing",
+    description: "Dark, abrasive, mechanistic -- subversive and boundary-pushing",
   },
   {
     name: "World/Global",
@@ -156,7 +156,7 @@ export const MUSICMAP_CLUSTERS: MusicmapCluster[] = [
   },
 ];
 
-// ─── 3. BPM RANGES BY SPECIFIC GENRE/SUBGENRE ────────────────────────────────
+// --- 3. BPM RANGES BY SPECIFIC GENRE/SUBGENRE --------------------------------
 
 export const BPM_RANGES: Record<string, [number, number]> = {
   // Electronic
@@ -210,6 +210,11 @@ export const BPM_RANGES: Record<string, [number, number]> = {
   "Metal": [120, 220],
   "Grunge": [100, 140],
   "Classic Rock": [100, 140],
+  "Yacht Rock": [90, 120],
+  "AOR": [95, 125],
+  "Soft Rock": [85, 115],
+  "Southern Rock": [105, 145],
+  "Blues Rock": [100, 140],
   // Roots
   "Jazz": [80, 240],
   "Bebop": [160, 240],
@@ -232,7 +237,118 @@ export const BPM_RANGES: Record<string, [number, number]> = {
   "Amapiano": [110, 120],
 };
 
-// ─── 4. MUSIC FIVE-FACTOR MOOD MODEL ─────────────────────────────────────────
+// --- 3b. CROSS-POLLINATION MAP (from Genre Atlas v3) ------------------------
+// Maps genres to their creative cross-pollination partners for playlist diversity.
+// These are genres that share sonic DNA despite being in different families/clusters.
+
+export const CROSS_POLLINATION: Record<string, string[]> = {
+  // Electronic <-> Jazz/Soul crossovers
+  "Deep House": ["Nu-Jazz", "Neo-Soul", "Downtempo", "Afro House"],
+  "Liquid DnB": ["Deep House", "Nu-Jazz", "Ambient"],
+  "Trip-Hop": ["Ambient", "Downtempo", "Alternative R&B", "Neo-Soul"],
+  "Ambient": ["Minimalist", "Downtempo", "Post-Rock", "New Age"],
+  "Downtempo": ["Trip-Hop", "Chillout", "Lo-Fi", "Neo-Soul"],
+  "Melodic Techno": ["Progressive House", "Trance", "Ambient", "Minimal Techno"],
+  "Afro House": ["Afrobeats", "Deep House", "Amapiano", "Dancehall"],
+  // R&B/Soul crossovers
+  "Neo-Soul": ["Jazz Fusion", "Lo-Fi", "Alternative R&B", "Deep House", "Trip-Hop"],
+  "Alternative R&B": ["Indie Pop", "Electronic", "Trap Soul", "Dream Pop"],
+  "Trap Soul": ["Trap", "Contemporary R&B", "Cloud Rap"],
+  "Contemporary R&B": ["Pop", "Neo-Soul", "Trap Soul", "Afrobeats"],
+  // Hip-Hop crossovers
+  "Trap": ["Drill", "Cloud Rap", "EDM", "Reggaeton"],
+  "Boom Bap": ["Jazz", "Soul", "Conscious Hip-Hop"],
+  "Cloud Rap": ["Ambient", "Shoegaze", "Dream Pop", "Trap"],
+  "Experimental Hip-Hop": ["Art Pop", "Electronic", "Jazz", "Noise"],
+  // Rock crossovers
+  "Post-Rock": ["Ambient", "Shoegaze", "Contemporary Classical", "Film Score"],
+  "Shoegaze": ["Dream Pop", "Post-Rock", "Ambient", "Psychedelic Rock"],
+  "Psychedelic Rock": ["Krautrock", "Progressive Rock", "Psytrance", "Stoner Rock"],
+  "Progressive Rock": ["Jazz Fusion", "Classical", "Psychedelic Rock", "Art Pop"],
+  "Indie Rock": ["Indie Pop", "Alternative Rock", "Post-Punk", "Dream Pop"],
+  // Jazz crossovers
+  "Jazz Fusion": ["Funk", "Progressive Rock", "Electronic", "Neo-Soul"],
+  "Smooth Jazz": ["Contemporary R&B", "Neo-Soul", "Bossa Nova"],
+  "Latin Jazz": ["Bossa Nova", "Salsa", "Bebop", "Afro-Cuban"],
+  // Latin crossovers
+  "Reggaeton": ["Trap", "Dancehall", "Afrobeats", "Latin Pop"],
+  "Bossa Nova": ["Smooth Jazz", "Latin Jazz", "Downtempo"],
+  // Global crossovers
+  "Afrobeats": ["Dancehall", "Reggaeton", "Afro House", "R&B"],
+  "Amapiano": ["Afro House", "Deep House", "Kizomba"],
+  "Dancehall": ["Reggaeton", "Afrobeats", "Soca", "Trap"],
+  // Yacht Rock / AOR crossovers
+  "Yacht Rock": ["AOR", "Soft Rock", "Smooth Jazz", "West Coast Jazz", "Blue-Eyed Soul"],
+  "AOR": ["Yacht Rock", "Classic Rock", "Soft Rock", "Power Pop"],
+  "Soft Rock": ["Yacht Rock", "AOR", "Adult Contemporary", "Singer-Songwriter"],
+  "Southern Rock": ["Classic Rock", "Blues Rock", "Country Rock", "Americana"],
+  "Blues Rock": ["Classic Rock", "Southern Rock", "Blues", "Hard Rock"],
+  // Country/Folk crossovers
+  "Americana": ["Folk", "Indie Rock", "Singer-Songwriter", "Blues"],
+  "Alt-Country": ["Indie Rock", "Americana", "Folk Rock"],
+  // Pop crossovers
+  "Dream Pop": ["Shoegaze", "Indie Pop", "Ambient", "Alternative R&B"],
+  "Art Pop": ["Experimental Hip-Hop", "Progressive Rock", "Electronic", "Avant-Garde Jazz"],
+  "Synth-Pop": ["Electropop", "New Wave", "Darkwave", "Indie Pop"],
+  "Indie Pop": ["Dream Pop", "Indie Rock", "Synth-Pop", "Alternative R&B"],
+  // Metal crossovers
+  "Progressive Metal": ["Progressive Rock", "Jazz Fusion", "Djent"],
+  "Post-Metal": ["Post-Rock", "Sludge Metal", "Ambient", "Shoegaze"],
+};
+
+/**
+ * Get cross-pollination partners for a genre.
+ * Returns genres from different families that share sonic DNA.
+ */
+export function getCrossPollinationPartners(genre: string, maxResults = 4): string[] {
+  // Direct lookup
+  const direct = CROSS_POLLINATION[genre];
+  if (direct) return direct.slice(0, maxResults);
+
+  // Case-insensitive fallback
+  const lower = genre.toLowerCase();
+  for (const [key, partners] of Object.entries(CROSS_POLLINATION)) {
+    if (key.toLowerCase() === lower) return partners.slice(0, maxResults);
+  }
+  return [];
+}
+
+/**
+ * Build a cross-pollination context string for AI curation prompts.
+ * Shows creative genre pairing opportunities relevant to the requested genres.
+ */
+export function buildCrossPollinationContext(genres: string[], subGenres: string[]): string {
+  const allGenres = [...genres, ...subGenres];
+  const lines: string[] = [];
+  const seen = new Set<string>();
+
+  for (const genre of allGenres) {
+    const partners = getCrossPollinationPartners(genre);
+    if (partners.length > 0 && !seen.has(genre.toLowerCase())) {
+      lines.push(`- ${genre} pairs creatively with: ${partners.join(", ")}`);
+      seen.add(genre.toLowerCase());
+    }
+  }
+
+  // Also include reverse lookups: find genres that cross-pollinate INTO the requested genres
+  for (const [source, targets] of Object.entries(CROSS_POLLINATION)) {
+    if (seen.has(source.toLowerCase())) continue;
+    const lowerTargets = targets.map(t => t.toLowerCase());
+    for (const g of allGenres) {
+      if (lowerTargets.includes(g.toLowerCase())) {
+        lines.push(`- ${source} shares sonic DNA with ${g}`);
+        seen.add(source.toLowerCase());
+        break;
+      }
+    }
+  }
+
+  if (lines.length === 0) return "";
+
+  return `\nCREATIVE CROSS-GENRE PAIRING OPPORTUNITIES:\n${lines.slice(0, 12).join("\n")}`;
+}
+
+// --- 4. MUSIC FIVE-FACTOR MOOD MODEL -----------------------------------------
 
 export type MusicFactor = "Mellow" | "Urban" | "Sophisticated" | "Intense" | "Campestral";
 
@@ -248,7 +364,7 @@ export interface MusicFactorDef {
 export const MUSIC_FACTORS: MusicFactorDef[] = [
   {
     name: "Mellow",
-    description: "Smooth, relaxing, romantic — low arousal, moderate-to-high valence",
+    description: "Smooth, relaxing, romantic -- low arousal, moderate-to-high valence",
     characteristics: ["quiet", "smooth", "soft", "gentle", "romantic", "sensual", "warm", "intimate"],
     typicalGenres: ["Soft Rock", "R&B", "Soul", "Neo-Soul", "Smooth Jazz", "Dream Pop", "Ambient", "Contemporary R&B"],
     energyRange: [1, 4],
@@ -256,7 +372,7 @@ export const MUSIC_FACTORS: MusicFactorDef[] = [
   },
   {
     name: "Urban",
-    description: "Rhythmic, electric, percussive — strong beat, street-oriented",
+    description: "Rhythmic, electric, percussive -- strong beat, street-oriented",
     characteristics: ["rhythmic", "electric", "percussive", "groovy", "energetic", "danceable", "bass-heavy"],
     typicalGenres: ["Hip-Hop", "Rap", "Funk", "Trap", "R&B", "Dancehall", "Electronic", "House", "Afrobeats"],
     energyRange: [5, 9],
@@ -264,7 +380,7 @@ export const MUSIC_FACTORS: MusicFactorDef[] = [
   },
   {
     name: "Sophisticated",
-    description: "Complex, thoughtful, intelligent — cerebral, nuanced, high musicianship",
+    description: "Complex, thoughtful, intelligent -- cerebral, nuanced, high musicianship",
     characteristics: ["complex", "intelligent", "nuanced", "tasteful", "refined", "harmonic", "improvisational"],
     typicalGenres: ["Jazz", "Classical", "World", "Progressive Rock", "Art Pop", "Chamber Music", "Fusion"],
     energyRange: [2, 7],
@@ -272,7 +388,7 @@ export const MUSIC_FACTORS: MusicFactorDef[] = [
   },
   {
     name: "Intense",
-    description: "Loud, forceful, aggressive — high arousal, often negative or tense valence",
+    description: "Loud, forceful, aggressive -- high arousal, often negative or tense valence",
     characteristics: ["loud", "aggressive", "powerful", "raw", "heavy", "energetic", "anthemic", "driving"],
     typicalGenres: ["Metal", "Punk", "Hard Rock", "Hardcore", "Industrial", "Drum & Bass", "Techno", "Psytrance"],
     energyRange: [7, 10],
@@ -280,7 +396,7 @@ export const MUSIC_FACTORS: MusicFactorDef[] = [
   },
   {
     name: "Campestral",
-    description: "Rootsy, acoustic, sincere — pastoral, storytelling, organic",
+    description: "Rootsy, acoustic, sincere -- pastoral, storytelling, organic",
     characteristics: ["acoustic", "rootsy", "authentic", "sincere", "pastoral", "storytelling", "natural", "earthy"],
     typicalGenres: ["Country", "Folk", "Americana", "Bluegrass", "Singer-Songwriter", "Celtic", "Gospel"],
     energyRange: [2, 6],
@@ -288,7 +404,7 @@ export const MUSIC_FACTORS: MusicFactorDef[] = [
   },
 ];
 
-// ─── 5. THREE-DIMENSIONAL AFFECT MODEL ───────────────────────────────────────
+// --- 5. THREE-DIMENSIONAL AFFECT MODEL ---------------------------------------
 
 export interface AffectProfile {
   valence: "very_positive" | "positive" | "neutral" | "negative" | "very_negative";
@@ -296,7 +412,7 @@ export interface AffectProfile {
   tensionArousal: "tense" | "excited" | "relaxed" | "calm";
 }
 
-// ─── 6. UTILITY FUNCTIONS ────────────────────────────────────────────────────
+// --- 6. UTILITY FUNCTIONS ----------------------------------------------------
 
 /** Given a genre name, find its parent family */
 export function findGenreFamily(genre: string): GenreFamily | undefined {
@@ -367,7 +483,7 @@ export function buildTaxonomyPromptContext(genres: string[], moods: string[]): s
 
   const adjacentInfo = genres.flatMap(g => {
     const adj = getAdjacentGenres(g);
-    return adj.length > 0 ? [`- ${g} → adjacent: ${adj.join(", ")}`] : [];
+    return adj.length > 0 ? [`- ${g} -> adjacent: ${adj.join(", ")}`] : [];
   }).join("\n");
 
   return `CANONICAL GENRE TAXONOMY:
